@@ -1,0 +1,37 @@
+{
+  "_comment": "Mods each in-game scenario installs, pinned by CKAN identifier and version (CKAN resolves dependencies; versions checked against a working KSP 1.12.5 install on 13/11/2026). Squad and SquadExpansion come with the game. KSPCommunityFixes is left out on purpose: without a real screen its cache step hangs (see docs/TESTING.md).",
+  "scenarios": {
+    "minimal": {
+      "purpose": "Scribe alone with the stock game: transactions, revert, flight, docking, benchmark, menu, noscribe",
+      "rounds": ["tx", "revert", "flight", "dock", "bench", "menu", "noscribe"],
+      "save": "save",
+      "mods": [
+        {"id": "ModuleManager", "version": "4.2.3"}
+      ]
+    },
+    "contracts": {
+      "purpose": "Contracts accepted and completed (F10): the stock contract system plus Contract Configurator",
+      "rounds": ["flight"],
+      "save": "save",
+      "mods": [
+        {"id": "ModuleManager", "version": "4.2.3"},
+        {"id": "ContractConfigurator", "version": "v2.13.4.0"}
+      ]
+    },
+    "kct": {
+      "purpose": "Technology unlocked and facility upgraded through Kerbal Construction Time (F11)",
+      "rounds": ["kct"],
+      "save": "save",
+      "mods": [
+        {"id": "ModuleManager", "version": "4.2.3"},
+        {"id": "KerbalConstructionTime", "version": "1:1.4.13.1"}
+      ]
+    },
+    "full-career": {
+      "purpose": "Optional, local only: the whole 143-mod career install, to catch conflicts. Not reproducible by others",
+      "rounds": ["tx", "revert", "flight", "bench", "kct"],
+      "save": "local",
+      "mods": "install-as-is"
+    }
+  }
+}
