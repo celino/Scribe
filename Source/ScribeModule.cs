@@ -48,6 +48,8 @@ namespace Scribe
             GameEvents.onKerbalAdded.Add(OnKerbalAdded);
             GameEvents.onPartCouple.Add(OnCouple);
             GameEvents.OnTechnologyResearched.Add(OnTech);
+            GameEvents.OnKSCFacilityUpgraded.Add(OnFacilityUpgraded);
+            StartCoroutine(HookKct());
             GameEvents.Contract.onAccepted.Add(OnContractAccepted);
             GameEvents.Contract.onCompleted.Add(OnContractCompleted);
             GameEvents.Contract.onFailed.Add(OnContractFailed);
@@ -69,6 +71,8 @@ namespace Scribe
             GameEvents.onKerbalAdded.Remove(OnKerbalAdded);
             GameEvents.onPartCouple.Remove(OnCouple);
             GameEvents.OnTechnologyResearched.Remove(OnTech);
+            GameEvents.OnKSCFacilityUpgraded.Remove(OnFacilityUpgraded);
+            if (kctTechDone != null) { kctTechDone.Remove(OnKctTechCompleted); kctTechDone = null; }
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
             GameEvents.Contract.onCompleted.Remove(OnContractCompleted);
             GameEvents.Contract.onFailed.Remove(OnContractFailed);
@@ -232,6 +236,45 @@ namespace Scribe
         {
             if (a.target != RDTech.OperationResult.Successful || a.host == null) return;
             Event("tech", "TechResearched", "", "", a.host.techID);
+        }
+
+        // Stock event: fires when a facility level is really applied (Kerbal Construction Time applies it when the wait ends).
+        // The game can fire it once per facility object (the Astronaut Complex test fired it twice); the same text within a second is one upgrade.
+        string lastFacility;
+        float lastFacilityAt = -10f;
+
+        void OnFacilityUpgraded(Upgradeables.UpgradeableFacility f, int level)
+        {
+            if (f == null) return;
+            string text = f.id + " level " + (level + 1);
+            if (text == lastFacility && Time.realtimeSinceStartup - lastFacilityAt < 1f) return;
+            lastFacility = text;
+            lastFacilityAt = Time.realtimeSinceStartup;
+            Event("facility", "Upgraded", "", "", text);
+        }
+
+        // Kerbal Construction Time (optional): it queues a researched tech and unlocks it later without firing the stock
+        // OnTechnologyResearched. It publishes OnKctTechCompleted by name; found at run time, so Scribe needs no reference to KCT.
+        EventData<ProtoTechNode> kctTechDone;
+
+        IEnumerator HookKct()
+        {
+            bool present = false;
+            foreach (AssemblyLoader.LoadedAssembly a in AssemblyLoader.loadedAssemblies)
+                if (a.name != null && a.name.StartsWith("KerbalConstructionTime", StringComparison.OrdinalIgnoreCase)) { present = true; break; }
+            if (!present) yield break;
+            for (int i = 0; i < 20 && kctTechDone == null; i++)
+            {
+                kctTechDone = GameEvents.FindEvent<EventData<ProtoTechNode>>("OnKctTechCompleted");
+                if (kctTechDone == null) yield return new WaitForSecondsRealtime(1f);
+            }
+            if (kctTechDone != null) kctTechDone.Add(OnKctTechCompleted);
+            else Debug.Log("[Scribe] Kerbal Construction Time is loaded but OnKctTechCompleted was not found; KCT tech completions will not be recorded");
+        }
+
+        void OnKctTechCompleted(ProtoTechNode n)
+        {
+            if (n != null) Event("tech", "TechCompleted", "", "", n.techID);
         }
 
         void OnContractAccepted(Contract c) { Event("contract", "Accepted", "", "", c.Title); }

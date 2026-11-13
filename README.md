@@ -14,9 +14,9 @@
 
 > **Status: test build 0.1.0.** Scribe only reads game events and writes one node in your save, so it is low risk, but
 > back up your save before trying it. So far it has run in a test install of KSP 1.12.5 with scripted transactions, a
-> flight (launch, destruction, recovery, a kerbal death, a finished contract) and a quickload. It has **not** been played
-> through a long career, **not** tested with docking, and **not** tested with funds spent through Kerbal Construction
-> Time queues. Do not rely on it yet.
+> flight (launch, destruction, recovery, a kerbal death, a finished contract), a quickload, an undock and re-dock of a
+> space station, Kerbal Construction Time queues (vessel, tech, facility upgrade) and the removal of the mod from a save.
+> It has **not** been played through a long career. Do not rely on it yet.
 
 Scribe keeps a ledger inside your save: **when** funds, science or reputation changed, by **how much**, to **what
 balance**, and **why** (the reason KSP itself reports, like `ContractReward` or `RnDPartPurchase`). It also notes
@@ -42,12 +42,14 @@ window** and no settings: it is data for other tools, and plain text you can rea
 | Kerbal dead or missing, kerbal hired | kerbal name |
 | Contract accepted, completed, failed, cancelled | contract title |
 | Technology researched | tech id |
+| Technology unlocked by Kerbal Construction Time (when it is installed) | tech id |
+| Facility upgraded | facility id and level |
 
 ## Requirements
 
 - KSP 1.12.x (tested on 1.12.5)
 - No other mods. No known conflicts: it was run in a test install with Contract Configurator, Kerbal Construction Time
-  and others loaded, but see "Known issues" for what was not tested.
+  and about a hundred other mods loaded. Kerbal Construction Time is optional (see the FAQ).
 
 ## Install
 
@@ -69,17 +71,32 @@ reasons. Scribe fills that gap.
 Not yet. It is plain text in `persistent.sfs`; scripts can read it. A window is not planned.
 
 **Can I remove it?**
-The ledger node stays in your save as data the game ignores. Removing the mod from an existing save was **not tested**.
+Yes, nothing else depends on it. I tested it: with the `GameData/Scribe` folder gone and the ledger still in the save, the
+game loads normally and logs one harmless line (`Cannot find a Module of typename 'ScribeModule'`), and it writes the
+ledger back unchanged on every save. To clean the save as well, delete the whole `SCENARIO` block with `name = ScribeModule`
+from `persistent.sfs` (and from any quicksave you want to keep), or run `tools/remove-from-save.py --apply <save folder>`
+from the source repo with KSP closed (it keeps a `.bak-scribe` copy and, without `--apply`, only tells you what it would
+remove). Tested: with the block removed the game loads with no error and no trace of Scribe. Put the mod back later with
+the ledger still in the save and it picks up where it stopped.
 
 **Does it work with docking?**
-Merging two vessels should not count as a destruction (there is a short guard for that), but I have not tested it in flight.
+Yes. When the game merges two docked vessels it destroys one of them, and Scribe ignores that. Tested by undocking a
+space station module and letting the game dock it again: the game fired the destroy event for the merged 24-part vessel
+and the ledger stayed empty. A vessel that is really lost is still recorded.
+
+**And Kerbal Construction Time?**
+Optional. KCT queues a researched tech and unlocks it later without telling the game, so with KCT Scribe writes two
+entries: `TechResearched` when you pay and queue it, and `TechCompleted` when KCT unlocks it. Funds KCT charges (building a
+vessel, rollout, facility upgrades) are recorded like any other with KSP's reason, but **KCT does not announce when a
+vessel finishes building or enters its queue, so Scribe cannot record those moments**; you only see the funds line.
 
 ## Known issues
 
-- Not tested: docking, Kerbal Construction Time queues, sandbox or science-only saves, a large long-running career, and
-  the 5,000-entry limit in a real game (only in a synthetic test).
-- `Missing` kerbals, researched technologies, hired kerbals and contracts other than "completed" were not exercised
-  in a flight yet.
+- Not tested: sandbox or science-only saves, a large long-running career, and the 5,000-entry limit in a real game (only
+  in a synthetic test).
+- `Missing` kerbals, hired kerbals and contracts other than "completed" were not exercised in a flight yet.
+- Vessels finished in the Kerbal Construction Time queue are not recorded (KCT has no event for it); see the FAQ.
+- The facility entry shows the new level as the game counts it internally, plus one.
 
 ## Reporting problems
 
@@ -94,7 +111,8 @@ reason names and your vessel and kerbal names.
 ## Testing
 
 `tools/validate.py` checks the `.version` and that the CHANGELOG has the section for that version. `tests/run.sh` runs 24
-checks on the ledger logic (balance differences, trimming, saving and loading), without KSP. The parts that need the game
+checks on the ledger logic (balance differences, trimming, saving and loading), without KSP. `tools/remove-from-save.py`
+takes the ledger out of a save. The parts that need the game
 run only on my own test machine, in a copy of KSP with a scripted driver; the results are in the CHANGELOG under
 "Flown in a career save so far", and the honest summary is: scripted rounds yes, a long career no.
 
@@ -108,7 +126,7 @@ UnityEngine assemblies). The DLL is not in git; the release zip is the way to ge
 
 I'm Evandro, and I make this with Claudinho, my AI assistant (Claude, by Anthropic). We plan together and nothing gets
 built until I approve it; Claudinho writes most of the code and the first drafts of the texts and runs the automated
-checks; I review every change and play it in a test save. The opening image was made with AI (Nano Banana), from a prompt written by my media assistant, and reviewed by me. Anything that still blows up on the pad is on me.
+checks; I review every change and play it in a test save. The opening image was made with AI (GPT Image 2.5), from a prompt written by my media assistant, and reviewed by me. Anything that still blows up on the pad is on me.
 
 ## Credits
 
