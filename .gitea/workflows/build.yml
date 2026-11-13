@@ -26,16 +26,16 @@ jobs:
             python3 tools/validate.py
           fi
 
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
       - name: Unit tests with coverage
         run: |
-          if command -v dotnet >/dev/null 2>&1; then
-            dotnet test tests/Scribe.Tests/Scribe.Tests.csproj -warnaserror \
-              --settings tests/coverlet.runsettings --results-directory tests/TestResults \
-              --logger "trx;LogFileName=unit.trx"
-          else
-            echo "dotnet SDK not found on this runner; the unit tests need it" >&2
-            exit 1
-          fi
+          dotnet test tests/Scribe.Tests/Scribe.Tests.csproj -warnaserror \
+            --settings tests/coverlet.runsettings --results-directory tests/TestResults \
+            --logger "trx;LogFileName=unit.trx"
 
       - name: Upload test results
         if: always()
