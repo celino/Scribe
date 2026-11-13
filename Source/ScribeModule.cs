@@ -1,0 +1,242 @@
+// Scribe: the KSP side. Hooks game events and keeps the ledger in the save (persistent.sfs, node SCRIBE).
+// Reacts to events only; nothing here runs per frame.
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using Contracts;
+using UnityEngine;
+
+namespace Scribe
+{
+    [KSPScenario(ScenarioCreationOptions.AddToAllGames,
+        GameScenes.SPACECENTER, GameScenes.FLIGHT, GameScenes.EDITOR, GameScenes.TRACKSTATION)]
+    public class ScribeModule : ScenarioModule
+    {
+        const string Funds = "funds", Science = "science", Rep = "reputation";
+
+        public static ScribeModule Instance;
+        public Ledger Ledger = new Ledger();
+        bool hooked;
+        static readonly HashSet<Guid> seen = new HashSet<Guid>();
+
+        public override void OnAwake()
+        {
+            base.OnAwake();
+            Instance = this;
+            Hook();
+        }
+
+        void OnDestroy()
+        {
+            Unhook();
+            if (Instance == this) Instance = null;
+        }
+
+        void Hook()
+        {
+            if (hooked) return;
+            hooked = true;
+            GameEvents.OnFundsChanged.Add(OnFunds);
+            GameEvents.OnScienceChanged.Add(OnScience);
+            GameEvents.OnReputationChanged.Add(OnReputation);
+            GameEvents.onLaunch.Add(OnLaunch);
+            GameEvents.onVesselRecovered.Add(OnRecovered);
+            GameEvents.onVesselWillDestroy.Add(OnVesselDestroy);
+            GameEvents.onVesselDestroy.Add(OnVesselDestroy);
+            GameEvents.onKerbalStatusChange.Add(OnKerbalStatus);
+            GameEvents.onKerbalAdded.Add(OnKerbalAdded);
+            GameEvents.onPartCouple.Add(OnCouple);
+            GameEvents.OnTechnologyResearched.Add(OnTech);
+            GameEvents.Contract.onAccepted.Add(OnContractAccepted);
+            GameEvents.Contract.onCompleted.Add(OnContractCompleted);
+            GameEvents.Contract.onFailed.Add(OnContractFailed);
+            GameEvents.Contract.onCancelled.Add(OnContractCancelled);
+        }
+
+        void Unhook()
+        {
+            if (!hooked) return;
+            hooked = false;
+            GameEvents.OnFundsChanged.Remove(OnFunds);
+            GameEvents.OnScienceChanged.Remove(OnScience);
+            GameEvents.OnReputationChanged.Remove(OnReputation);
+            GameEvents.onLaunch.Remove(OnLaunch);
+            GameEvents.onVesselRecovered.Remove(OnRecovered);
+            GameEvents.onVesselWillDestroy.Remove(OnVesselDestroy);
+            GameEvents.onVesselDestroy.Remove(OnVesselDestroy);
+            GameEvents.onKerbalStatusChange.Remove(OnKerbalStatus);
+            GameEvents.onKerbalAdded.Remove(OnKerbalAdded);
+            GameEvents.onPartCouple.Remove(OnCouple);
+            GameEvents.OnTechnologyResearched.Remove(OnTech);
+            GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
+            GameEvents.Contract.onCompleted.Remove(OnContractCompleted);
+            GameEvents.Contract.onFailed.Remove(OnContractFailed);
+            GameEvents.Contract.onCancelled.Remove(OnContractCancelled);
+        }
+
+        // ---- save / load ----
+
+        public override void OnLoad(ConfigNode node)
+        {
+            Ledger = new Ledger();
+            int cap;
+            if (int.TryParse(node.GetValue("cap"), NumberStyles.Integer, CultureInfo.InvariantCulture, out cap) && cap > 0)
+                Ledger.Cap = cap;
+            foreach (ConfigNode n in node.GetNodes(ScribeInfo.EntryName))
+            {
+                var pairs = new List<KeyValuePair<string, string>>();
+                foreach (ConfigNode.Value v in n.values) pairs.Add(new KeyValuePair<string, string>(v.name, v.value));
+                Ledger.Entries.Add(Ledger.FromPairs(pairs));
+            }
+            // last known balances saved with the ledger: they belong to this very save, so a revert/quickload is consistent
+            ConfigNode b = node.GetNode("BALANCES");
+            if (b != null)
+                foreach (ConfigNode.Value v in b.values)
+                {
+                    double d;
+                    if (double.TryParse(v.value, NumberStyles.Float, CultureInfo.InvariantCulture, out d)) Ledger.SetBalance(v.name, d);
+                }
+            StartCoroutine(SeedBalances());
+        }
+
+        public override void OnSave(ConfigNode node)
+        {
+            node.AddValue("cap", Ledger.Cap.ToString(CultureInfo.InvariantCulture));
+            ConfigNode b = node.AddNode("BALANCES");
+            foreach (var kv in Ledger.Balances) b.AddValue(kv.Key, Ledger.Num(kv.Value));
+            foreach (Entry e in Ledger.Entries)
+            {
+                ConfigNode n = node.AddNode(ScribeInfo.EntryName);
+                foreach (var p in Ledger.ToPairs(e)) n.AddValue(p.Key, Clean(p.Value));
+            }
+        }
+
+        // ConfigNode values are one line and "//" starts a comment when the file is read back.
+        static string Clean(string s)
+        {
+            return s.Replace("\r", " ").Replace("\n", " ").Replace("//", "/ /");
+        }
+
+        // One frame after loading: for balances the save did not carry (first run with this mod), start from the live value.
+        IEnumerator SeedBalances()
+        {
+            yield return null;
+            if (Funding.Instance != null && !Ledger.HasBalance(Funds)) Ledger.SetBalance(Funds, Funding.Instance.Funds);
+            if (ResearchAndDevelopment.Instance != null && !Ledger.HasBalance(Science)) Ledger.SetBalance(Science, ResearchAndDevelopment.Instance.Science);
+            if (Reputation.Instance != null && !Ledger.HasBalance(Rep)) Ledger.SetBalance(Rep, Reputation.Instance.reputation);
+        }
+
+        // ---- helpers ----
+
+        static double Now()
+        {
+            return Planetarium.GetUniversalTime();
+        }
+
+        static string ActiveVessel()
+        {
+            Vessel v = HighLogic.LoadedSceneIsFlight ? FlightGlobals.ActiveVessel : null;
+            return v != null ? v.vesselName : "";
+        }
+
+        static string ActiveBody()
+        {
+            Vessel v = HighLogic.LoadedSceneIsFlight ? FlightGlobals.ActiveVessel : null;
+            return v != null && v.mainBody != null ? v.mainBody.bodyName : "";
+        }
+
+        void Balance(string kind, double value, TransactionReasons reason)
+        {
+            try { Ledger.RecordBalance(kind, value, Now(), reason.ToString(), ActiveVessel(), ActiveBody()); }
+            catch (Exception ex) { Debug.LogError("[Scribe] " + kind + ": " + ex); }
+        }
+
+        void Event(string type, string reason, string vessel, string body, string text)
+        {
+            try { Ledger.RecordEvent(type, reason, Now(), vessel, body, text); }
+            catch (Exception ex) { Debug.LogError("[Scribe] " + type + ": " + ex); }
+        }
+
+        // ---- events ----
+
+        void OnFunds(double balance, TransactionReasons reason) { Balance(Funds, balance, reason); }
+        void OnScience(float balance, TransactionReasons reason) { Balance(Science, balance, reason); }
+        void OnReputation(float balance, TransactionReasons reason) { Balance(Rep, balance, reason); }
+
+        void OnLaunch(EventReport report)
+        {
+            Event("launch", "Launch", ActiveVessel(), ActiveBody(), "");
+        }
+
+        void OnRecovered(ProtoVessel pv, bool quick)
+        {
+            if (pv == null) return;
+            Event("recovered", quick ? "RecoveredQuick" : "Recovered", pv.vesselName,
+                pv.orbitSnapShot != null && pv.orbitSnapShot.ReferenceBodyIndex >= 0 ? BodyName(pv.orbitSnapShot.ReferenceBodyIndex) : "", "");
+        }
+
+        static string BodyName(int index)
+        {
+            CelestialBody b = FlightGlobals.Bodies != null && index < FlightGlobals.Bodies.Count ? FlightGlobals.Bodies[index] : null;
+            return b != null ? b.bodyName : "";
+        }
+
+        // Docking merges two vessels and one of them is destroyed by the game. Not a loss: ignore both ids for a short moment.
+        static readonly Dictionary<Guid, float> coupled = new Dictionary<Guid, float>();
+        const float CoupleWindow = 3f;
+
+        void OnCouple(GameEvents.FromToAction<Part, Part> a)
+        {
+            float t = Time.realtimeSinceStartup;
+            if (a.from != null && a.from.vessel != null) coupled[a.from.vessel.id] = t;
+            if (a.to != null && a.to.vessel != null) coupled[a.to.vessel.id] = t;
+        }
+
+        static bool JustCoupled(Guid id)
+        {
+            float t;
+            return coupled.TryGetValue(id, out t) && Time.realtimeSinceStartup - t < CoupleWindow;
+        }
+
+        void OnVesselDestroy(Vessel v)
+        {
+            if (v == null) return;
+            if (JustCoupled(v.id)) return;
+            // debris and flags are noise
+            if (v.vesselType == VesselType.Debris || v.vesselType == VesselType.Flag || v.vesselType == VesselType.SpaceObject) return;
+            // Vessel.Die() fires onVesselWillDestroy BEFORE it sets state = DEAD; onVesselDestroy comes later (often at scene
+            // unload, when this module is already gone). Both are hooked; the id keeps one entry per vessel.
+            // A vessel with no parts left (e.g. merged by docking) is not a loss.
+            if (v.parts == null || v.parts.Count == 0) return;
+            if (!seen.Add(v.id)) return;
+            Event("destroyed", "VesselDestroy", v.vesselName, v.mainBody != null ? v.mainBody.bodyName : "", "");
+        }
+
+        void OnKerbalStatus(ProtoCrewMember k, ProtoCrewMember.RosterStatus from, ProtoCrewMember.RosterStatus to)
+        {
+            if (k == null) return;
+            string reason = null;
+            if (to == ProtoCrewMember.RosterStatus.Dead) reason = "Dead";
+            else if (to == ProtoCrewMember.RosterStatus.Missing) reason = "Missing";
+            if (reason == null) return;
+            Event("kerbal", reason, ActiveVessel(), ActiveBody(), k.name);
+        }
+
+        void OnKerbalAdded(ProtoCrewMember k)
+        {
+            if (k != null) Event("kerbal", "Added", "", "", k.name);
+        }
+
+        void OnTech(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> a)
+        {
+            if (a.target != RDTech.OperationResult.Successful || a.host == null) return;
+            Event("tech", "TechResearched", "", "", a.host.techID);
+        }
+
+        void OnContractAccepted(Contract c) { Event("contract", "Accepted", "", "", c.Title); }
+        void OnContractCompleted(Contract c) { Event("contract", "Completed", "", "", c.Title); }
+        void OnContractFailed(Contract c) { Event("contract", "Failed", "", "", c.Title); }
+        void OnContractCancelled(Contract c) { Event("contract", "Cancelled", "", "", c.Title); }
+    }
+}

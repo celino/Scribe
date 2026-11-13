@@ -1,0 +1,7 @@
+*.bak-*
+dist/
+ksp-test/
+*.dll
+obj/
+bin/
+Source/out/
