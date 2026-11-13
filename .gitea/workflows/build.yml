@@ -26,10 +26,21 @@ jobs:
             python3 tools/validate.py
           fi
 
-      - name: Ledger tests
+      - name: Unit tests with coverage
         run: |
           if command -v dotnet >/dev/null 2>&1; then
-            dotnet run --project tests/Regression.csproj
+            dotnet test tests/Scribe.Tests/Scribe.Tests.csproj -warnaserror \
+              --settings tests/coverlet.runsettings --results-directory tests/TestResults \
+              --logger "trx;LogFileName=unit.trx"
           else
-            sh tests/run.sh
+            echo "dotnet SDK not found on this runner; the unit tests need it" >&2
+            exit 1
           fi
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: tests/TestResults
+          if-no-files-found: ignore

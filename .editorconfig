@@ -1,0 +1,44 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,yml,yaml,json}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Allman braces, as in the existing code
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+# C# 7.3 is the ceiling for the plugin (KSP 1.12 runs .NET Framework 4.8), so no newer syntax is suggested
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_prefer_braces = when_multiline:suggestion
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+
+# Naming: public members PascalCase, private fields camelCase (the KSP code base does the same)
+dotnet_naming_rule.public_members.severity = suggestion
+dotnet_naming_rule.public_members.symbols = public_symbols
+dotnet_naming_rule.public_members.style = pascal
+dotnet_naming_symbols.public_symbols.applicable_kinds = property, method, field, event, class, struct, enum
+dotnet_naming_symbols.public_symbols.applicable_accessibilities = public
+dotnet_naming_style.pascal.capitalization = pascal_case
+
+# xUnit tests are named F01_what_it_proves
+[tests/**.cs]
+dotnet_diagnostic.CA1707.severity = none
+
+# Entry is a plain data holder shared with the plugin; public fields keep it light and the code short
+[Source/ScribeCore.cs]
+dotnet_diagnostic.CA1051.severity = none

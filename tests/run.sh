@@ -1,11 +1,6 @@
 #!/bin/sh
-# Runs the regression tests. Needs no KSP: only the C# compiler (mcs, or dotnet when mcs is missing).
+# Runs the unit tests (layer 2). Needs only the dotnet SDK, no KSP. Extra arguments go to `dotnet test`.
+# Coverage: sh tests/run.sh --collect:"XPlat Code Coverage" --results-directory tests/TestResults
 set -e
-cd "$(dirname "$0")"
-if command -v mcs >/dev/null 2>&1; then
-  out="${TMPDIR:-/tmp}/scribe-tests.exe"
-  mcs -nowarn:0649 -out:"$out" ../Source/ScribeCore.cs Regression.cs
-  mono "$out"
-else
-  dotnet run --project Regression.csproj
-fi
+cd "$(dirname "$0")/.."
+exec dotnet test tests/Scribe.Tests/Scribe.Tests.csproj "$@"

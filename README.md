@@ -110,8 +110,10 @@ reason names and your vessel and kerbal names.
 
 ## Testing
 
-`tools/validate.py` checks the `.version` and that the CHANGELOG has the section for that version. `tests/run.sh` runs 24
-checks on the ledger logic (balance differences, trimming, saving and loading), without KSP. `tools/remove-from-save.py`
+`tests/FEATURES.md` lists every feature this README promises, the layer that proves it and the test. `tools/validate.py`
+checks the `.version`, the CHANGELOG, and that the matrix matches the README and the tests. `sh tests/run.sh` runs 22 xUnit
+tests on the ledger logic (balance differences, trimming, saving and loading; about 99% of the core's lines), with only the
+dotnet SDK and no KSP. `tools/remove-from-save.py`
 takes the ledger out of a save. The parts that need the game
 run only on my own test machine, in a copy of KSP with a scripted driver; the results are in the CHANGELOG under
 "Flown in a career save so far", and the honest summary is: scripted rounds yes, a long career no.

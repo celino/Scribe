@@ -5,3 +5,5 @@ ksp-test/
 obj/
 bin/
 Source/out/
+tests/TestResults/
+**/bin/
