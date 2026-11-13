@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The core source file is compiled into the test assembly (until Scribe.Core becomes its own project), so the test
-     assembly has to be instrumented, and only ScribeCore.cs counts. -->
+<!-- Coverage of the core assembly only (tests excluded). -->
 <RunSettings>
   <DataCollectionRunSettings>
     <DataCollectors>
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
           <Format>cobertura,json</Format>
-          <IncludeTestAssembly>true</IncludeTestAssembly>
-          <Include>[Scribe.Tests]Scribe.*</Include>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
+          <Include>[Scribe.Core]Scribe.*</Include>
           <ExcludeByFile>**/tests/**</ExcludeByFile>
         </Configuration>
       </DataCollector>

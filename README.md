@@ -121,7 +121,7 @@ run only on my own test machine, in a copy of KSP with a scripted driver; the re
 ## Building from source
 
 `dotnet build -c Release` in `Source/` with `KSP_DIR` pointing to a KSP install (it needs `Assembly-CSharp.dll` and the
-UnityEngine assemblies). The DLL is not in git; the release zip is the way to get it. `sh tools/package.sh` builds
+UnityEngine assemblies). The DLLs (`Scribe.dll` and `Scribe.Core.dll`) are not in git; the release zip is the way to get them. `sh tools/package.sh` builds
 `dist/Scribe-<version>.zip` from a local build.
 
 ## How this was made

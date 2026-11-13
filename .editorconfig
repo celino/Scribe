@@ -39,6 +39,6 @@ dotnet_naming_style.pascal.capitalization = pascal_case
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
 
-# Entry is a plain data holder shared with the plugin; public fields keep it light and the code short
-[Source/ScribeCore.cs]
+# Entry and SaveNode are plain data holders shared with the plugin; public fields keep them light and the code short
+[Source/Core/*.cs]
 dotnet_diagnostic.CA1051.severity = none

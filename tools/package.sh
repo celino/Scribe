@@ -1,12 +1,13 @@
 #!/bin/sh
 # Builds dist/Scribe-<version>.zip with GameData/ at the root (the layout SpaceDock and CKAN expect), plus README.md,
 # CHANGELOG.md and LICENSE. The DLL is not in git: build it first (see README, "Building from source"); it is read from
-# GameData/Scribe/Plugins/Scribe.dll, which Source/Scribe.csproj does not write, so copy Source/out/Scribe.dll there.
+# GameData/Scribe/Plugins/, which Source/Scribe.csproj does not write, so copy Source/out/Scribe.dll and Scribe.Core.dll there.
 set -eu
 cd "$(dirname "$0")/.."
 
-dll=GameData/Scribe/Plugins/Scribe.dll
-[ -f "$dll" ] || { echo "missing $dll: build Source/ and copy Source/out/Scribe.dll there" >&2; exit 1; }
+for dll in GameData/Scribe/Plugins/Scribe.dll GameData/Scribe/Plugins/Scribe.Core.dll; do
+  [ -f "$dll" ] || { echo "missing $dll: build Source/ and copy Source/out/*.dll there" >&2; exit 1; }
+done
 
 version=$(python3 -c 'import json; v = json.load(open("GameData/Scribe/Scribe.version"))["VERSION"]; print("%d.%d.%d" % (v["MAJOR"], v["MINOR"], v["PATCH"]))')
 out="dist/Scribe-${version}.zip"

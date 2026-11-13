@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The ledger and the decisions of the module, with no reference to KSP or Unity. Tested by tests/Scribe.Tests.
+       net48 is what the plugin loads: KSP does not ship netstandard.dll, so a netstandard-only build fails to load in the game
+       ("missing dependencies: netstandard"). netstandard2.0 is the build the net8.0 tests use. -->
+  <PropertyGroup>
+    <TargetFrameworks>net48;netstandard2.0</TargetFrameworks>
+    <LangVersion>7.3</LangVersion>
+    <AssemblyName>Scribe.Core</AssemblyName>
+    <RootNamespace>Scribe</RootNamespace>
+  </PropertyGroup>
+</Project>

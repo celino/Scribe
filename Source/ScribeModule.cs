@@ -18,7 +18,8 @@ namespace Scribe
         public static ScribeModule Instance;
         public Ledger Ledger = new Ledger();
         bool hooked;
-        static readonly HashSet<Guid> seen = new HashSet<Guid>();
+        static readonly DestroyFilter destroyFilter = new DestroyFilter();
+        static readonly FacilityDebounce facilityDebounce = new FacilityDebounce();
 
         public override void OnAwake()
         {
@@ -83,43 +84,29 @@ namespace Scribe
 
         public override void OnLoad(ConfigNode node)
         {
-            Ledger = new Ledger();
-            int cap;
-            if (int.TryParse(node.GetValue("cap"), NumberStyles.Integer, CultureInfo.InvariantCulture, out cap) && cap > 0)
-                Ledger.Cap = cap;
-            foreach (ConfigNode n in node.GetNodes(ScribeInfo.EntryName))
-            {
-                var pairs = new List<KeyValuePair<string, string>>();
-                foreach (ConfigNode.Value v in n.values) pairs.Add(new KeyValuePair<string, string>(v.name, v.value));
-                Ledger.Entries.Add(Ledger.FromPairs(pairs));
-            }
-            // last known balances saved with the ledger: they belong to this very save, so a revert/quickload is consistent
-            ConfigNode b = node.GetNode("BALANCES");
-            if (b != null)
-                foreach (ConfigNode.Value v in b.values)
-                {
-                    double d;
-                    if (double.TryParse(v.value, NumberStyles.Float, CultureInfo.InvariantCulture, out d)) Ledger.SetBalance(v.name, d);
-                }
+            Ledger = LedgerStore.Load(ToSaveNode(node));
             StartCoroutine(SeedBalances());
         }
 
         public override void OnSave(ConfigNode node)
         {
-            node.AddValue("cap", Ledger.Cap.ToString(CultureInfo.InvariantCulture));
-            ConfigNode b = node.AddNode("BALANCES");
-            foreach (var kv in Ledger.Balances) b.AddValue(kv.Key, Ledger.Num(kv.Value));
-            foreach (Entry e in Ledger.Entries)
-            {
-                ConfigNode n = node.AddNode(ScribeInfo.EntryName);
-                foreach (var p in Ledger.ToPairs(e)) n.AddValue(p.Key, Clean(p.Value));
-            }
+            var tree = new SaveNode();
+            LedgerStore.Save(Ledger, tree);
+            FromSaveNode(tree, node);
         }
 
-        // ConfigNode values are one line and "//" starts a comment when the file is read back.
-        static string Clean(string s)
+        static SaveNode ToSaveNode(ConfigNode node)
         {
-            return s.Replace("\r", " ").Replace("\n", " ").Replace("//", "/ /");
+            var n = new SaveNode();
+            foreach (ConfigNode.Value v in node.values) n.AddValue(v.name, v.value);
+            foreach (ConfigNode c in node.GetNodes()) n.Nodes.Add(new KeyValuePair<string, SaveNode>(c.name, ToSaveNode(c)));
+            return n;
+        }
+
+        static void FromSaveNode(SaveNode from, ConfigNode to)
+        {
+            foreach (var v in from.Values) to.AddValue(v.Key, v.Value);
+            foreach (var c in from.Nodes) FromSaveNode(c.Value, to.AddNode(c.Key));
         }
 
         // One frame after loading: for balances the save did not carry (first run with this mod), start from the live value.
@@ -186,43 +173,24 @@ namespace Scribe
             return b != null ? b.bodyName : "";
         }
 
-        // Docking merges two vessels and one of them is destroyed by the game. Not a loss: ignore both ids for a short moment.
-        static readonly Dictionary<Guid, float> coupled = new Dictionary<Guid, float>();
-        const float CoupleWindow = 3f;
-
         void OnCouple(GameEvents.FromToAction<Part, Part> a)
         {
             float t = Time.realtimeSinceStartup;
-            if (a.from != null && a.from.vessel != null) coupled[a.from.vessel.id] = t;
-            if (a.to != null && a.to.vessel != null) coupled[a.to.vessel.id] = t;
-        }
-
-        static bool JustCoupled(Guid id)
-        {
-            float t;
-            return coupled.TryGetValue(id, out t) && Time.realtimeSinceStartup - t < CoupleWindow;
+            if (a.from != null && a.from.vessel != null) destroyFilter.NoteCoupled(a.from.vessel.id, t);
+            if (a.to != null && a.to.vessel != null) destroyFilter.NoteCoupled(a.to.vessel.id, t);
         }
 
         void OnVesselDestroy(Vessel v)
         {
             if (v == null) return;
-            if (JustCoupled(v.id)) return;
-            // debris and flags are noise
-            if (v.vesselType == VesselType.Debris || v.vesselType == VesselType.Flag || v.vesselType == VesselType.SpaceObject) return;
-            // Vessel.Die() fires onVesselWillDestroy BEFORE it sets state = DEAD; onVesselDestroy comes later (often at scene
-            // unload, when this module is already gone). Both are hooked; the id keeps one entry per vessel.
-            // A vessel with no parts left (e.g. merged by docking) is not a loss.
-            if (v.parts == null || v.parts.Count == 0) return;
-            if (!seen.Add(v.id)) return;
+            if (!destroyFilter.ShouldRecord(v.id, v.vesselType.ToString(), v.parts != null ? v.parts.Count : 0, Time.realtimeSinceStartup)) return;
             Event("destroyed", "VesselDestroy", v.vesselName, v.mainBody != null ? v.mainBody.bodyName : "", "");
         }
 
         void OnKerbalStatus(ProtoCrewMember k, ProtoCrewMember.RosterStatus from, ProtoCrewMember.RosterStatus to)
         {
             if (k == null) return;
-            string reason = null;
-            if (to == ProtoCrewMember.RosterStatus.Dead) reason = "Dead";
-            else if (to == ProtoCrewMember.RosterStatus.Missing) reason = "Missing";
+            string reason = ScribeRules.KerbalReason(to.ToString());
             if (reason == null) return;
             Event("kerbal", reason, ActiveVessel(), ActiveBody(), k.name);
         }
@@ -240,16 +208,11 @@ namespace Scribe
 
         // Stock event: fires when a facility level is really applied (Kerbal Construction Time applies it when the wait ends).
         // The game can fire it once per facility object (the Astronaut Complex test fired it twice); the same text within a second is one upgrade.
-        string lastFacility;
-        float lastFacilityAt = -10f;
-
         void OnFacilityUpgraded(Upgradeables.UpgradeableFacility f, int level)
         {
             if (f == null) return;
-            string text = f.id + " level " + (level + 1);
-            if (text == lastFacility && Time.realtimeSinceStartup - lastFacilityAt < 1f) return;
-            lastFacility = text;
-            lastFacilityAt = Time.realtimeSinceStartup;
+            string text = ScribeRules.FacilityText(f.id, level);
+            if (!facilityDebounce.Accept(text, Time.realtimeSinceStartup)) return;
             Event("facility", "Upgraded", "", "", text);
         }
 
