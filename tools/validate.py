@@ -7,6 +7,7 @@ Usage: python3 tools/validate.py [--tag vX.Y.Z]
 import json
 import re
 import sys
+import os
 
 problems = []
 ver_path = "GameData/Scribe/Scribe.version"
@@ -73,6 +74,27 @@ for folder in ("Source", "tests", "tools"):
             if ACCENTED.search(line):
                 problems.append(f"{path}:{n}: accented letters (the repo is English only)")
                 break
+
+# docs: community files exist, every ADR is in the index, relative links in the docs resolve, no accented letters
+for needed in ("CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "docs/adr/README.md"):
+    if not os.path.exists(needed):
+        problems.append(f"{needed}: missing")
+if os.path.exists("docs/adr/README.md"):
+    index = open("docs/adr/README.md", encoding="utf-8").read()
+    for path in sorted(glob.glob("docs/adr/[0-9]*.md")):
+        if os.path.basename(path) not in index:
+            problems.append(f"{path}: not listed in docs/adr/README.md")
+        if not re.search(r"^Status: (Accepted|Superseded|Proposed)", open(path, encoding="utf-8").read(), re.M):
+            problems.append(f"{path}: no 'Status:' line")
+for path in glob.glob("*.md") + glob.glob("docs/**/*.md", recursive=True):
+    text = open(path, encoding="utf-8").read()
+    if ACCENTED.search(text):
+        problems.append(f"{path}: accented letters (the repo is English only)")
+    for target in re.findall(r"\]\(([^)#\s]+)(?:#[^)]*)?\)", text):
+        if re.match(r"[a-z]+:", target):
+            continue
+        if not os.path.exists(os.path.normpath(os.path.join(os.path.dirname(path), target))):
+            problems.append(f"{path}: broken link {target}")
 
 if "--tag" in sys.argv:
     tag = sys.argv[sys.argv.index("--tag") + 1].lstrip("v")

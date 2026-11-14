@@ -109,6 +109,11 @@ Time). How to run them on your own machine: [`docs/TESTING.md`](docs/TESTING.md)
 Bugs and questions: GitHub Issues, once the repo is public. Until then, tell Evandro. Attach your `KSP.log` (check it for
 personal paths first) and, if you can, the `ScribeModule` part of `persistent.sfs`.
 
+## Contributing
+
+See [`CONTRIBUTING.md`](CONTRIBUTING.md), the [decision records](docs/adr/README.md) (why it is built this way), the
+[code of conduct](CODE_OF_CONDUCT.md) and [`SECURITY.md`](SECURITY.md).
+
 ## Localization
 
 Scribe has no player-facing text (no window, no messages), so there is nothing to translate. The ledger uses KSP's own
