@@ -35,7 +35,7 @@ public static class KctTest
         KCT_BuildListVessel blv = null;
         try
         {
-            ShipConstruct ship = ShipConstruction.LoadShip(Path.Combine(KSPUtil.ApplicationRootPath, "Ships/VAB/Kerbal 1-5.craft"));
+            ShipConstruct ship = ShipConstruction.LoadShip(Path.Combine(KSPUtil.ApplicationRootPath, "saves/" + HighLogic.SaveFolder + "/Ships/VAB/Scribe Probe.craft"));
             Log("ship loaded: " + (ship == null ? "null" : ship.parts.Count + " parts"));
             blv = new KCT_BuildListVessel(ship, "LaunchPad", 500, 600, "Squad/Flags/default");
             blv.shipName = "Scribe KCT Test";
@@ -64,8 +64,9 @@ public static class KctTest
         {
             string id = null; int cost = 0;
             foreach (var t in AssetBase.RnDTechTree.GetTreeTechs())
-                if (t.scienceCost > 0 && t.scienceCost <= 40 && ResearchAndDevelopment.Instance.GetTechState(t.techID) != null) { id = t.techID; cost = t.scienceCost; break; }
+                if (t.scienceCost > 0 && t.scienceCost <= 40) { id = t.techID; cost = t.scienceCost; break; }
             var proto = ResearchAndDevelopment.Instance.GetTechState(id);
+            if (proto == null) proto = new ProtoTechNode { techID = id, scienceCost = cost, partsPurchased = new List<AvailablePart>() }; // fresh career: the node has no state yet
             Log($"tech state before: {proto.state}; making it Unavailable for the test (test save only)");
             proto.state = RDTech.State.Unavailable;
             ResearchAndDevelopment.Instance.SetTechState(id, proto);
@@ -99,7 +100,7 @@ public static class KctTest
             foreach (var kv in ScenarioUpgradeableFacilities.protoUpgradeables)
             {
                 var f = kv.Value.facilityRefs.FirstOrDefault();
-                if (f != null && f.FacilityLevel < f.MaxLevel && !kv.Key.Contains("LaunchPad") && !kv.Key.Contains("Runway")) { fid = kv.Key; lvl = f.FacilityLevel; fname = f.name; break; }
+                if (f != null && f.FacilityLevel < f.MaxLevel && kv.Key.Contains("AstronautComplex")) { fid = kv.Key; lvl = f.FacilityLevel; fname = f.name; break; }
             }
             Log($"facility picked: {fid} level {lvl}");
             if (fid != null)
@@ -117,6 +118,9 @@ public static class KctTest
         Since("after the facility upgrade finished");
 
         Rc.Dump();
+        var all = ScribeModule.Instance.Ledger.Entries;
+        Rc.Assert("F11", all.Any(e => e.Type == "tech" && e.Reason == "TechCompleted"), "tech completed through KCT is in the ledger");
+        Rc.Assert("F11", all.Any(e => e.Type == "facility" && e.Reason == "Upgraded" && e.Text.Length > 0), "facility upgrade through KCT is in the ledger");
         try { GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE); Log("saved"); }
         catch (Exception ex) { Log("save threw " + ex.GetType().Name); }
         yield return new WaitForSecondsRealtime(3f);

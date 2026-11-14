@@ -77,6 +77,18 @@ open(p, "w").write(s[:i] + node + s[i:])
 PY2
 		return 0
 	fi
+	# kct: like Scribe, Kerbal Construction Time puts its scenario only into new games; the driver's load path needs it seeded
+	if [ "$round" = kct ]; then
+		python3 -I - "$install/saves/$save/persistent.sfs" <<'PY3'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+if "name = KerbalConstructionTimeData" not in s:
+    i = s.index("\tSCENARIO")
+    s = s[:i] + "\tSCENARIO\n\t{\n\t\tname = KerbalConstructionTimeData\n\t\tscene = 5, 6, 7, 8\n\t}\n" + s[i:]
+    open(p, "w").write(s)
+PY3
+	fi
 	[ "$seed" = 1 ] || return 0
 	python3 -I - "$install/saves/$save/persistent.sfs" <<'PY'
 import sys

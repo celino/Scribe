@@ -20,7 +20,7 @@ without KSP (planned), **L4** = scripted rounds in a real game (local machine on
 | F08 | Launch, recovery and destruction recorded with the real vessel name | Launch, recovery, destruction | L4 | ingame | scenario `flight` |
 | F09 | Docking is not recorded as a loss (rule tested in L3; the real docking round is L4) | Does it work with docking? | L3 + L4 | planned | scenario `dock` |
 | F10 | Kerbal death and hiring, contracts, researched technology | Kerbal dead or missing | L4 | ingame | scenario `flight` |
-| F11 | Kerbal Construction Time: tech completed and facility upgrade | Technology unlocked by Kerbal Construction Time | L4 | planned | scenario `kct` |
+| F11 | Kerbal Construction Time: tech completed and facility upgrade | Technology unlocked by Kerbal Construction Time | L4 | ingame | scenario `kct` |
 | F12 | The scenario is added to a save that never had it | Adds itself | L4 | ingame | scenario `menu` |
 | F13 | About 2 µs per event; saving is not slower | Light | L4 | ingame | scenario `bench` |
 | F14 | The game loads with the mod removed and the ledger still in the save | Can I remove it? | L4 | ingame | scenario `noscribe` |
