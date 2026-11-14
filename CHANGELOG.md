@@ -13,6 +13,9 @@ What changed in each version of Scribe. Newest first. Every entry is written dow
 - With Kerbal Construction Time installed, a tech it unlocks is recorded as `TechCompleted` (KCT queues the tech at
   research time and unlocks it later without the stock event). Found by name at run time; Scribe has no reference to KCT.
 - `tools/remove-from-save.py` removes the ledger from a save.
+- Tests: a feature matrix (`tests/FEATURES.md`) checked against the README by `tools/validate.py`; unit tests named by
+  feature; eight scripted in-game rounds that print `ASSERT Fnn PASS|FAIL` (`tests/ingame`, `tools/run-ingame-all.sh`);
+  a lean Docker image and `tools/ksp-dev-create.sh` to build a throw-away test install; `docs/TESTING.md`.
 
 ### Flown in a career save so far
 

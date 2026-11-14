@@ -92,11 +92,17 @@ vessel finishes building or enters its queue, so Scribe cannot record those mome
 
 ## Known issues
 
-- Not tested: sandbox or science-only saves, a large long-running career, and the 5,000-entry limit in a real game (only
-  in a synthetic test).
+- Not tested: sandbox or science-only saves and a large long-running career. (The 5,000-entry limit was exercised in a
+  real game with 12,000 scripted events, in a test save.)
 - `Missing` kerbals, hired kerbals and contracts other than "completed" were not exercised in a flight yet.
 - Vessels finished in the Kerbal Construction Time queue are not recorded (KCT has no event for it); see the FAQ.
 - The facility entry shows the new level as the game counts it internally, plus one.
+
+## Testing
+
+Every feature above has an ID in [`tests/FEATURES.md`](tests/FEATURES.md) and a test: unit tests for the ledger logic
+and scripted rounds in a running game (launch, destroy, recover, dock, quickload, remove the mod, Kerbal Construction
+Time). How to run them on your own machine: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Reporting problems
 

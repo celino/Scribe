@@ -47,3 +47,44 @@ jobs:
           name: test-results
           path: tests/TestResults
           if-no-files-found: ignore
+
+  # The in-game rounds (tests/ingame, docs/TESTING.md). Homelab only: it drives the host's Docker daemon through the socket
+  # act_runner mounts into every job, opens KSP in a window on the host's display (software rendering stalls, so the
+  # container uses the host GPU) and takes about 20 minutes. It runs on tags and on demand, not on every push.
+  # The installs are made once on the host:  tools/ksp-dev-create.sh --ksp <KSP> --dest <dir> --scenario minimal|kct
+  ksp-test:
+    needs: build
+    if: github.ref_type == 'tag' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    env:
+      DISPLAY: ":0"
+      CI_ROOT: /mnt/projects/projects/ksp/ci
+      MINIMAL: /mnt/projects/projects/ksp/mods/Scribe/ksp-test/install-minimal
+      KCT: /mnt/projects/projects/ksp/mods/Scribe/ksp-test/install-kct
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rounds on the minimal install
+        env:
+          RUN_ID: ${{ github.run_id }}-minimal
+        run: |
+          KSP_INSTALL="$MINIMAL" ROUNDS="tx revert flight dock bench menu noscribe" sh tools/ksp-ingame-ci.sh
+          mv ksp-test ksp-test-minimal
+
+      - name: Round on the Kerbal Construction Time install
+        env:
+          RUN_ID: ${{ github.run_id }}-kct
+        run: |
+          KSP_INSTALL="$KCT" ROUNDS="kct" sh tools/ksp-ingame-ci.sh
+          mv ksp-test ksp-test-kct
+
+      - name: Upload logs and results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ingame-rounds
+          path: |
+            ksp-test-minimal
+            ksp-test-kct
+          if-no-files-found: ignore

@@ -8,7 +8,7 @@
 # The install is the read-only lower layer of an overlay volume; everything the game writes goes to a temporary
 # upper layer that is deleted at the end. The checkout is copied into the container, the plugin and the round
 # driver are built there, then every round runs through tools/run-ingame.sh. Results land in ./ksp-test/<round>/.
-# Needs the image from tests/ingame/docker (docker build -t scribe-ksp-test tests/ingame/docker).
+# DISPLAY must point at the host's X server (e.g. :0). Needs the image from tests/ingame/docker (docker build -t scribe-ksp-test tests/ingame/docker).
 set -eu
 cd "$(dirname "$0")/.."
 
@@ -36,7 +36,12 @@ for r in '"$ROUNDS"'; do
 	sh /tmp/repo/tools/run-ingame.sh --install /game --round "$r" --out "/tmp/out/$r" --build-plugin || fail=1
 done
 exit $fail'
-docker create --name "$id-ksp" --shm-size 2g -e MAX_S="${MAX_S:-1800}" -e IDLE_S="${IDLE_S:-1500}" \
+# The game needs a real display and a GPU (software rendering stalls). The container reaches the host's X server through
+# its socket and the GPU through /dev/dri; the X server must accept the same local user (xhost +SI:localuser:<user>).
+gpu=""
+if [ -n "${DISPLAY:-}" ]; then gpu="-e LIBGL_ALWAYS_SOFTWARE=0 -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix --device /dev/dri"; fi
+# shellcheck disable=SC2086
+docker create --name "$id-ksp" --shm-size 2g $gpu -e MAX_S="${MAX_S:-1800}" -e IDLE_S="${IDLE_S:-1500}" \
 	-v "$id":/game "$KSP_IMAGE" sh -c "$script" >/dev/null
 docker cp . "$id-ksp:/repo" >/dev/null
 docker start -a "$id-ksp" && status=0 || status=$?

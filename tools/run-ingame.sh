@@ -46,9 +46,20 @@ allow=""; [ "$round" = flight ] && allow=""
 [ -n "$out" ] || out="$here/ksp-test/$round-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$out"
 
+# dotnet on PATH, or else the test image (docker build -t scribe-ksp-test tests/ingame/docker); needs the repo and the install
+# to be reachable under the same paths, so they are mounted at /src and /ksp
+dotnet_build() {   # dotnet_build <csproj> <output dir>
+	if command -v dotnet >/dev/null 2>&1; then
+		dotnet build "$1" -c Release -p:KspDir="$install" -o "$2" -v q -nologo
+	else
+		mkdir -p "$2"
+		docker run --rm -u "$(id -u)" -e HOME=/tmp -v "$here":/src -v "$install":/ksp:ro -v "$(cd "$2" && pwd -P)":/o \
+			"${KSP_IMAGE:-scribe-ksp-test}" dotnet build "/src/${1#"$here"/}" -c Release -p:KspDir=/ksp -o /o -v q -nologo
+	fi
+}
 # --build-plugin: compile Scribe.dll and Scribe.Core.dll from this checkout into the install (CI; locally the install already has them)
 if [ "$build_plugin" = 1 ]; then
-	dotnet build "$here/Source/Scribe.csproj" -c Release -p:KspDir="$install" -o "$out/plugin" -v q -nologo >"$out/build-plugin.txt" 2>&1 \
+	dotnet_build "$here/Source/Scribe.csproj" "$out/plugin" >"$out/build-plugin.txt" 2>&1 \
 		|| { echo "plugin build failed, see $out/build-plugin.txt" >&2; exit 1; }
 	cp "$out/plugin/Scribe.dll" "$out/plugin/Scribe.Core.dll" "$install/GameData/Scribe/Plugins/"
 fi
@@ -58,7 +69,7 @@ drvdir=driver; drvproj=ScribeRound.csproj
 # build the driver against this install
 # (DRIVER_DLL=<path> skips the build, for machines where dotnet only runs in a container)
 if [ -n "${DRIVER_DLL:-}" ]; then mkdir -p "$out/driver"; cp "$DRIVER_DLL" "$out/driver/ScribeRound.dll"; else
-dotnet build "$here/tests/ingame/$drvdir/$drvproj" -c Release -p:KspDir="$install" -o "$out/driver" -v q -nologo >"$out/build.txt" 2>&1 \
+dotnet_build "$here/tests/ingame/$drvdir/$drvproj" "$out/driver" >"$out/build.txt" 2>&1 \
 	|| { echo "driver build failed, see $out/build.txt" >&2; exit 1; }
 fi
 
