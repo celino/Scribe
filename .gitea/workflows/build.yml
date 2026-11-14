@@ -26,6 +26,9 @@ jobs:
             python3 tools/validate.py
           fi
 
+      - name: Python tests
+        run: python3 -I -m unittest discover -s tests -p "test_*.py"
+
       - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:

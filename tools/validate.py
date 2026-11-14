@@ -36,6 +36,7 @@ import glob
 matrix = open("tests/FEATURES.md", encoding="utf-8").read()
 driver_src = "".join(open(f, encoding="utf-8").read() for f in glob.glob("tests/ingame/driver*/*.cs"))
 test_src = "".join(open(f, encoding="utf-8").read() for f in glob.glob("tests/Scribe.Tests/*.cs"))
+py_src = "".join(open(f, encoding="utf-8").read() for f in glob.glob("tests/test_*.py"))
 rows = re.findall(r"^\| (F\d+) \| (.+?) \| (.+?) \| (.+?) \| (planned|automated|ingame) \| (.+?) \|$", matrix, re.M)
 if not rows:
     problems.append("tests/FEATURES.md: no feature rows found")
@@ -48,6 +49,10 @@ for fid, _name, phrase, _layer, status, test in rows:
         problems.append(f"{fid}: README phrase not found: {phrase!r}")
     if status == "automated":
         prefix = test.strip("`")
+        if prefix.startswith("test_"):
+            if not re.search(rf"def {re.escape(prefix)}\w*\(", py_src):
+                problems.append(f"{fid}: automated, but no Python test starts with {prefix}")
+            continue
         if not re.search(rf"\b{re.escape(prefix)}\w*\(", test_src):
             problems.append(f"{fid}: automated, but no test method starts with {prefix}")
         if f'Trait("Feature", "{fid}")' not in test_src:

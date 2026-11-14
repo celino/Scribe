@@ -24,6 +24,6 @@ without KSP (planned), **L4** = scripted rounds in a real game (local machine on
 | F12 | The scenario is added to a save that never had it | Adds itself | L4 | ingame | scenario `menu` |
 | F13 | About 2 µs per event; saving is not slower | Light | L4 | ingame | scenario `bench` |
 | F14 | The game loads with the mod removed and the ledger still in the save | Can I remove it? | L4 | ingame | scenario `noscribe` |
-| F15 | `tools/remove-from-save.py` takes the ledger out of a save and keeps a backup | remove-from-save.py | L2 | planned | python test |
+| F15 | `tools/remove-from-save.py` takes the ledger out of a save and keeps a backup | remove-from-save.py | L2 | automated | `test_F15_` |
 | F16 | Destruction: debris, flags and merged vessels ignored; one entry per vessel | debris and flags ignored | L3 | automated | `F16_` |
 | F17 | Facility upgrade: the same upgrade fired twice is one entry | facility id and level | L3 | automated | `F17_` |
