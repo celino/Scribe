@@ -92,7 +92,7 @@ public class RoundLoader : MonoBehaviour
         if (game == null) { Rc.Log("could not load save " + folder + "; done"); Application.Quit(); yield break; }
         Rc.Log("loaded save " + folder);
         GamePersistence.UpdateScenarioModules(game);
-        Rc.EnsureScenario(game);
+        if ((cfg.GetValue("mode") ?? "") != "menu") Rc.EnsureScenario(game); // menu: the module must add itself
         game.startScene = (cfg.GetValue("mode") ?? "") == "dock" ? GameScenes.FLIGHT : GameScenes.SPACECENTER;
         HighLogic.CurrentGame = game;
         HighLogic.SaveFolder = folder;
@@ -113,6 +113,7 @@ public class RoundCenter : MonoBehaviour
         #if KCT
         if (mode == "kct") { StartCoroutine(KctTest.Run()); return; }
 #endif
+        if (mode == "menu") { StartCoroutine(Menu()); return; }
         if (mode == "bench") { StartCoroutine(Bench()); return; }
         if (mode == "flight") { StartCoroutine(FlightCenter(stage)); return; }
         if (stage == 1) StartCoroutine(mode == "revert" ? RevertA(cfg) : Tx());
@@ -151,6 +152,28 @@ public class RoundCenter : MonoBehaviour
         yield return Wait(3f);
         Rc.Log("done");
         yield return Wait(0.2f);
+        Application.Quit();
+    }
+
+    // menu: the save has no SCRIBE node and the driver does not add one; Scribe must add itself at the Space Center
+    IEnumerator Menu()
+    {
+        yield return Wait(15f);
+        Rc.Snap("menu start");
+        Rc.Assert("F12", ScribeModule.Instance != null, "module running without the driver adding it: " + (ScribeModule.Instance != null));
+        if (ScribeModule.Instance != null)
+        {
+            Funding.Instance.AddFunds(1234, TransactionReasons.Cheating);
+            yield return Wait(1f);
+            var fd = Rc.Deltas("funds");
+            Rc.Assert("F12", fd.Length == 1 && Math.Abs(fd[0] - 1234) < 0.01, "first change recorded: " + string.Join(",", fd.Select(d => d.ToString("R")).ToArray()));
+            GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            string sfs = File.ReadAllText(Path.Combine(KSPUtil.ApplicationRootPath, "saves/" + HighLogic.SaveFolder + "/persistent.sfs"));
+            Rc.Assert("F12", sfs.Contains("name = ScribeModule"), "the save now has the SCRIBE scenario node");
+        }
+        yield return Wait(3f);
+        Rc.Log("done");
+        yield return Wait(2f);
         Application.Quit();
     }
 

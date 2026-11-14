@@ -34,6 +34,8 @@ case "$round" in
 	revert) expect=F07 ;;
 	flight) expect=F08,F10 ;;
 	bench) expect=F13,F03 ;;
+	menu) expect=F12; seed=0 ;;
+	noscribe) expect=F14; seed=0 ;;
 	dock) expect=F09 ;;
 	kct) expect=F11 ;;
 	*) echo "unknown round: $round" >&2; exit 2 ;;
@@ -51,10 +53,12 @@ if [ "$build_plugin" = 1 ]; then
 	cp "$out/plugin/Scribe.dll" "$out/plugin/Scribe.Core.dll" "$install/GameData/Scribe/Plugins/"
 fi
 
+drvdir=driver; drvproj=ScribeRound.csproj
+[ "$round" = noscribe ] && { drvdir=driver-noscribe; drvproj=NoScribeRound.csproj; }
 # build the driver against this install
 # (DRIVER_DLL=<path> skips the build, for machines where dotnet only runs in a container)
 if [ -n "${DRIVER_DLL:-}" ]; then mkdir -p "$out/driver"; cp "$DRIVER_DLL" "$out/driver/ScribeRound.dll"; else
-dotnet build "$here/tests/ingame/driver/ScribeRound.csproj" -c Release -p:KspDir="$install" -o "$out/driver" -v q -nologo >"$out/build.txt" 2>&1 \
+dotnet build "$here/tests/ingame/$drvdir/$drvproj" -c Release -p:KspDir="$install" -o "$out/driver" -v q -nologo >"$out/build.txt" 2>&1 \
 	|| { echo "driver build failed, see $out/build.txt" >&2; exit 1; }
 fi
 
@@ -63,6 +67,16 @@ fi
 backup="$out/persistent.sfs.orig"; cp "$install/saves/$save/persistent.sfs" "$backup"
 prepare_save() {
 	cp "$backup" "$install/saves/$save/persistent.sfs"
+	if [ "$round" = noscribe ]; then   # a save that holds a ledger, to be loaded without the mod
+		python3 -I - "$install/saves/$save/persistent.sfs" "$here/tests/ingame/ledger-node.cfg" <<'PY2'
+import sys
+p, node = sys.argv[1], open(sys.argv[2]).read()
+s = open(p).read()
+i = s.index("\tSCENARIO")
+open(p, "w").write(s[:i] + node + s[i:])
+PY2
+		return 0
+	fi
 	[ "$seed" = 1 ] || return 0
 	python3 -I - "$install/saves/$save/persistent.sfs" <<'PY'
 import sys
@@ -76,7 +90,9 @@ PY
 }
 
 drv="$install/GameData/zzScribeRound"
-cleanup() { rm -rf "$drv"; cp "$backup" "$install/saves/$save/persistent.sfs"; }
+# noscribe: the mod's folder is taken out of GameData for the round and put back at the end
+[ "$round" = noscribe ] && mv "$install/GameData/Scribe" "$out/Scribe.parked"
+cleanup() { [ -d "$out/Scribe.parked" ] && mv "$out/Scribe.parked" "$install/GameData/Scribe"; rm -rf "$drv"; cp "$backup" "$install/saves/$save/persistent.sfs"; }
 trap cleanup EXIT
 mkdir -p "$drv"
 sed -e "s/^\( *mode =\).*/\1 $round/" -e "s/^\( *save =\).*/\1 $save/" "$here/tests/ingame/driver/scenario.cfg" >"$drv/scenario.cfg"

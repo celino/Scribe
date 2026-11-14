@@ -34,7 +34,7 @@ for pat in (r"\{\{", r"\[conferir\]"):
 # feature matrix: tests/FEATURES.md <-> README <-> unit tests
 import glob
 matrix = open("tests/FEATURES.md", encoding="utf-8").read()
-driver_src = "".join(open(f, encoding="utf-8").read() for f in glob.glob("tests/ingame/driver/*.cs"))
+driver_src = "".join(open(f, encoding="utf-8").read() for f in glob.glob("tests/ingame/driver*/*.cs"))
 test_src = "".join(open(f, encoding="utf-8").read() for f in glob.glob("tests/Scribe.Tests/*.cs"))
 rows = re.findall(r"^\| (F\d+) \| (.+?) \| (.+?) \| (.+?) \| (planned|automated|ingame) \| (.+?) \|$", matrix, re.M)
 if not rows:
@@ -52,8 +52,8 @@ for fid, _name, phrase, _layer, status, test in rows:
             problems.append(f"{fid}: automated, but no test method starts with {prefix}")
         if f'Trait("Feature", "{fid}")' not in test_src:
             problems.append(f"{fid}: automated, but no test has Trait Feature {fid}")
-    if status == "ingame" and f'Rc.Assert("{fid}"' not in driver_src:
-        problems.append(f'{fid}: ingame, but the round driver has no Rc.Assert("{fid}", ...)')
+    if status == "ingame" and f".Assert(\"{fid}\"" not in driver_src:
+        problems.append(f'{fid}: ingame, but the round driver has no Assert("{fid}", ...)')
 for used in set(re.findall(r'Trait\("Feature", "(F\d+)"\)', test_src)):
     if used not in ids:
         problems.append(f"{used}: used by a test but missing from tests/FEATURES.md")
