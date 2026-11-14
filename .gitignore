@@ -7,3 +7,6 @@ bin/
 Source/out/
 tests/TestResults/
 **/bin/
+tests/ingame/driver/out/
+tests/ingame/driver/obj/
+*.pdb
