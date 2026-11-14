@@ -18,7 +18,7 @@ without KSP (planned), **L4** = scripted rounds in a real game (local machine on
 | F06 | Summaries survive save and load | Older entries are folded | L2 | automated | `F06_` |
 | F07 | Revert and quickload take the ledger along | revert, quickload and save backups take it along | L4 | ingame | scenario `revert` |
 | F08 | Launch, recovery and destruction recorded with the real vessel name | Launch, recovery, destruction | L4 | ingame | scenario `flight` |
-| F09 | Docking is not recorded as a loss (rule tested in L3; the real docking round is L4) | Does it work with docking? | L3 + L4 | planned | scenario `dock` |
+| F09 | Docking is not recorded as a loss (rule tested in L3; the round couples two real vessels with Part.Couple) | Does it work with docking? | L3 + L4 | ingame | scenario `dock` |
 | F10 | Kerbal death and hiring, contracts, researched technology | Kerbal dead or missing | L4 | ingame | scenario `flight` |
 | F11 | Kerbal Construction Time: tech completed and facility upgrade | Technology unlocked by Kerbal Construction Time | L4 | ingame | scenario `kct` |
 | F12 | The scenario is added to a save that never had it | Adds itself | L4 | ingame | scenario `menu` |

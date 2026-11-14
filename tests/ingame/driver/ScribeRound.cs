@@ -93,7 +93,7 @@ public class RoundLoader : MonoBehaviour
         Rc.Log("loaded save " + folder);
         GamePersistence.UpdateScenarioModules(game);
         if ((cfg.GetValue("mode") ?? "") != "menu") Rc.EnsureScenario(game); // menu: the module must add itself
-        game.startScene = (cfg.GetValue("mode") ?? "") == "dock" ? GameScenes.FLIGHT : GameScenes.SPACECENTER;
+        game.startScene = GameScenes.SPACECENTER;
         HighLogic.CurrentGame = game;
         HighLogic.SaveFolder = folder;
         game.Start();
@@ -113,6 +113,7 @@ public class RoundCenter : MonoBehaviour
         #if KCT
         if (mode == "kct") { StartCoroutine(KctTest.Run()); return; }
 #endif
+        if (mode == "dock") { StartCoroutine(DockCenter()); return; }
         if (mode == "menu") { StartCoroutine(Menu()); return; }
         if (mode == "bench") { StartCoroutine(Bench()); return; }
         if (mode == "flight") { StartCoroutine(FlightCenter(stage)); return; }
@@ -153,6 +154,13 @@ public class RoundCenter : MonoBehaviour
         Rc.Log("done");
         yield return Wait(0.2f);
         Application.Quit();
+    }
+
+    IEnumerator DockCenter()
+    {
+        yield return Wait(15f);
+        Rc.Snap("dock start");
+        Launch();
     }
 
     // menu: the save has no SCRIBE node and the driver does not add one; Scribe must add itself at the Space Center
@@ -332,46 +340,44 @@ public class RoundFlight : MonoBehaviour
     static string Vessels() => string.Join("; ", FlightGlobals.Vessels.Where(x => x.vesselType != VesselType.SpaceObject && x.vesselType != VesselType.Debris)
         .Select(x => $"'{x.vesselName}' {x.vesselType} parts {x.parts.Count} state {x.state} loaded {x.loaded}").ToArray());
 
-    // dock: undock a docked pair of the station scenario, then dock it again both ways; Scribe must not write "destroyed" for the merge
+    // dock: a second copy of the probe is spawned next to the first one and the two are coupled with Part.Couple, the call
+    // behind a docking-port capture. The merged vessel is destroyed by the game: Scribe must not write "destroyed" for it.
     IEnumerator Dock()
     {
         yield return new WaitForSecondsRealtime(15f);
-        Vessel v = FlightGlobals.ActiveVessel;
-        Rc.Log($"dock: scene {HighLogic.LoadedScene}, scribe {(Scribe.ScribeModule.Instance == null ? "ABSENT" : "present")}, active '{(v == null ? "none" : v.vesselName)}'");
-        Rc.Log("vessels: " + Vessels());
-        GameEvents.onVesselWillDestroy.Add(x => Rc.Log($"EVENT onVesselWillDestroy '{x.vesselName}' type {x.vesselType} parts {x.parts.Count} state {x.state}"));
-        GameEvents.onVesselDestroy.Add(x => Rc.Log($"EVENT onVesselDestroy '{x.vesselName}' type {x.vesselType} parts {x.parts.Count} state {x.state}"));
-        GameEvents.onPartCouple.Add(x => Rc.Log($"EVENT onPartCouple {x.from.partInfo.name} (vessel '{x.from.vessel.vesselName}') -> {x.to.partInfo.name} (vessel '{x.to.vessel.vesselName}')"));
-        GameEvents.onPartUndock.Add(x => Rc.Log($"EVENT onPartUndock {x.partInfo.name}"));
-        if (v == null || Scribe.ScribeModule.Instance == null) { Rc.Log("nothing to do; done"); Application.Quit(); yield break; }
-        var docked = new System.Collections.Generic.List<ModuleDockingNode>();
-        for (int t = 0; t < 12 && docked.Count == 0; t++)
+        Vessel a = FlightGlobals.ActiveVessel;
+        Rc.Log($"dock: active '{(a == null ? "none" : a.vesselName)}' parts {(a == null ? 0 : a.parts.Count)} entries {Rc.Count()}");
+        if (a == null || ScribeModule.Instance == null) { Rc.Log("nothing to do; done"); Application.Quit(); yield break; }
+        int destroyEvents = 0, coupleEvents = 0;
+        GameEvents.onVesselDestroy.Add(x => { destroyEvents++; Rc.Log($"EVENT onVesselDestroy '{x.vesselName}' type {x.vesselType} parts {x.parts.Count} state {x.state}"); });
+        GameEvents.onPartCouple.Add(x => { coupleEvents++; Rc.Log($"EVENT onPartCouple {x.from.partInfo.name} -> {x.to.partInfo.name}"); });
+        int before = ScribeModule.Instance.Ledger.Entries.Count(e => e.Type == "destroyed");
+        string craft = Path.Combine(KSPUtil.ApplicationRootPath, "saves/" + HighLogic.SaveFolder + "/Ships/VAB/Scribe Probe.craft");
+        ShipConstruct ship = ShipConstruction.LoadShip(craft);
+        VesselCrewManifest crew = new VesselCrewManifest();
+        Vessel b = null;
+        var known = new System.Collections.Generic.HashSet<Vessel>(FlightGlobals.Vessels);
+        try
         {
-            docked = v.FindPartModulesImplementing<ModuleDockingNode>().Where(n => n.otherNode != null && n.state.Contains("Docked")).ToList();
-            if (docked.Count == 0) { Rc.Log("waiting for docked nodes (states: " + string.Join(",", v.FindPartModulesImplementing<ModuleDockingNode>().Select(n => n.state).Distinct().ToArray()) + ")"); yield return new WaitForSecondsRealtime(5f); }
+            ShipConstruction.AssembleForLaunch(ship, "LaunchPad", "Scribe Dock Partner", HighLogic.CurrentGame.flagURL, HighLogic.CurrentGame, crew);
+            b = FlightGlobals.Vessels.FirstOrDefault(v => !known.Contains(v));
         }
-        Rc.Log("docked nodes on active vessel: " + docked.Count);
-        if (docked.Count == 0) { Rc.Log("no docked pair; done"); Application.Quit(); yield break; }
-        ModuleDockingNode a = docked[0], b = a.otherNode;
-        for (int round = 1; round <= 1; round++)
+        catch (Exception ex) { Rc.Log("spawn threw " + ex.GetType().Name + ": " + ex.Message); }
+        Rc.Log("partner spawned: " + (b == null ? "no" : $"'{b.vesselName}' parts {b.parts.Count}"));
+        bool spawned = b != null && b != a; // Vessel is a MonoBehaviour: after the merge it compares equal to null
+        yield return new WaitForSecondsRealtime(3f);
+        if (spawned)
         {
-            Rc.Log($"round {round}: undock {a.part.partInfo.name} / {b.part.partInfo.name}; entries {Rc.Count()}; ejection {a.undockEjectionForce} reEngage {a.minDistanceToReEngage}");
-            // let the stock logic capture again on its own: no push-off, no re-engage distance
-            a.undockEjectionForce = 0; b.undockEjectionForce = 0; a.minDistanceToReEngage = 0; b.minDistanceToReEngage = 0;
-            a.Undock();
-            yield return new WaitForSecondsRealtime(2f);
-            Rc.Log($"2 s after undock: {Vessels()}; a '{a.vessel.vesselName}' b '{b.vessel.vesselName}' same {a.vessel == b.vessel}; states {a.state} / {b.state}; entries {Rc.Count()}");
-            for (int w = 0; w < 6 && a.vessel != b.vessel; w++)
-            {
-                yield return new WaitForSecondsRealtime(5f);
-                Rc.Log($"wait {w}: same {a.vessel == b.vessel}; states {a.state} / {b.state}; dist {Vector3.Distance(a.nodeTransform.position, b.nodeTransform.position):F2}; entries {Rc.Count()}");
-            }
-            yield return new WaitForSecondsRealtime(3f);
-            Rc.Log("after dock: " + Vessels());
-            Rc.Log($"after dock: entries {Rc.Count()}; a.vessel '{a.vessel.vesselName}' b.vessel '{b.vessel.vesselName}' same {a.vessel == b.vessel}");
+            Rc.Log($"coupling: {Vessels()}");
+            try { b.rootPart.Couple(a.rootPart); }
+            catch (Exception ex) { Rc.Log("couple threw " + ex.GetType().Name + ": " + ex.Message + "\n" + ex.StackTrace); }
+            yield return new WaitForSecondsRealtime(5f);
+            Rc.Log($"after coupling: {Vessels()}; couple events {coupleEvents}, destroy events {destroyEvents}");
         }
+        int after = ScribeModule.Instance.Ledger.Entries.Count(e => e.Type == "destroyed");
         Rc.Dump();
-        Rc.Log($"ledger entries at the end: {Rc.Count()}; destroyed entries: {Scribe.ScribeModule.Instance.Ledger.Entries.Count(e => e.Type == "destroyed")}");
+        Rc.Assert("F09", spawned && coupleEvents >= 1 && destroyEvents >= 1, $"two vessels were coupled for real: partner {spawned}, couple events {coupleEvents}, destroy events {destroyEvents}");
+        Rc.Assert("F09", after == before, $"no 'destroyed' entry for the merged vessel: {before} before, {after} after");
         Rc.Log("done");
         yield return new WaitForSecondsRealtime(2f);
         Application.Quit();
