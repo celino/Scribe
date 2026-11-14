@@ -8,7 +8,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       xvfb xauth libgl1 libglu1-mesa libgl1-mesa-dri libasound2 libxcursor1 libxrandr2 libxinerama1 libxi6 \
-      libgtk2.0-0 libglib2.0-0 libpulse0 ca-certificates \
+      libgtk2.0-0 libglib2.0-0 libpulse0 ca-certificates python3 procps \
  && rm -rf /var/lib/apt/lists/*
 
 # Same uid as the host user in most setups; the overlay's upper layer is chowned to it.

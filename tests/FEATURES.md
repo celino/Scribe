@@ -3,6 +3,8 @@
 Every feature the README promises has an ID, the layer that proves it and the test that does. `tools/validate.py` fails
 when a row marked `automated` cites a test that does not exist, or when its README phrase is gone from the README.
 
+Status: `automated` = unit test, `ingame` = a scripted round prints `ASSERT Fnn PASS` (tests/ingame), `planned` = not yet.
+
 Layers: **L2** = unit tests of the ledger core (`dotnet test`, no KSP), **L3** = decision logic of the module, tested
 without KSP (planned), **L4** = scripted rounds in a real game (local machine only, never on GitHub).
 
@@ -14,7 +16,7 @@ without KSP (planned), **L4** = scripted rounds in a real game (local machine on
 | F04 | The cap holds even when the days are far apart | Older entries are folded | L2 | automated | `F04_` |
 | F05 | The ledger survives save and load unchanged (numbers, names, quotes, newlines, `//`) | plain text you can read in `persistent.sfs` | L2 | automated | `F05_` |
 | F06 | Summaries survive save and load | Older entries are folded | L2 | automated | `F06_` |
-| F07 | Revert and quickload take the ledger along | revert, quickload and save backups take it along | L4 | planned | scenario `revert` |
+| F07 | Revert and quickload take the ledger along | revert, quickload and save backups take it along | L4 | ingame | scenario `revert` |
 | F08 | Launch, recovery and destruction recorded with the real vessel name | Launch, recovery, destruction | L4 | planned | scenario `flight` |
 | F09 | Docking is not recorded as a loss (rule tested in L3; the real docking round is L4) | Does it work with docking? | L3 + L4 | planned | scenario `dock` |
 | F10 | Kerbal death and hiring, contracts, researched technology | Kerbal dead or missing | L4 | planned | scenario `flight` |

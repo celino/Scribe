@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Test-only addon for Scribe rounds. KSP_DIR is /ksp in the ksp-moddev image; Scribe.dll comes from mods/Scribe. -->
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <OutputPath>out/</OutputPath>
+    <AssemblyName>ScribeRound</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <KspDir Condition="'$(KspDir)' == ''">$(KSP_DIR)</KspDir>
+    <KspDir Condition="'$(KspDir)' == ''">/ksp</KspDir>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+    <Reference Include="$(KspDir)/KSP_Data/Managed/Assembly-CSharp.dll"><Private>false</Private></Reference>
+    <Reference Include="$(KspDir)/KSP_Data/Managed/UnityEngine*.dll"><Private>false</Private></Reference>
+    <Reference Include="$(KspDir)/GameData/Scribe/Plugins/Scribe.dll"><Private>false</Private></Reference>
+    <Reference Include="$(KspDir)/GameData/Scribe/Plugins/Scribe.Core.dll"><Private>false</Private></Reference>
+  </ItemGroup>
+  <!-- the kct round only exists when the install has Kerbal Construction Time (scenario kct) -->
+  <PropertyGroup Condition="Exists('$(KspDir)/GameData/KerbalConstructionTime/Plugins/KerbalConstructionTime.dll')">
+    <DefineConstants>$(DefineConstants);KCT</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(DefineConstants)' != '' And $(DefineConstants.Contains('KCT'))">
+    <Reference Include="$(KspDir)/GameData/KerbalConstructionTime/Plugins/KerbalConstructionTime.dll"><Private>false</Private></Reference>
+  </ItemGroup>
+</Project>
