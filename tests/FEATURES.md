@@ -3,10 +3,10 @@
 Every feature the README promises has an ID, the layer that proves it and the test that does. `tools/validate.py` fails
 when a row marked `automated` cites a test that does not exist, or when its README phrase is gone from the README.
 
-Status: `automated` = unit test, `ingame` = a scripted round prints `ASSERT Fnn PASS` (tests/ingame), `planned` = not yet.
+Status: `automated` = unit test, `ingame` = a scripted round prints `ASSERT Fnn PASS` (tests/ingame), `planned` = not yet (no row uses it today).
 
 Layers: **L2** = unit tests of the ledger core (`dotnet test`, no KSP), **L3** = decision logic of the module, tested
-without KSP (planned), **L4** = scripted rounds in a real game (local machine only, never on GitHub).
+without KSP, **L4** = scripted rounds in a real game (local machine only, never on GitHub).
 
 | ID | Feature | README phrase | Layer | Status | Test |
 |---|---|---|---|---|---|

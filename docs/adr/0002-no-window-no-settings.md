@@ -1,6 +1,6 @@
 # 0002. No window and no settings
 
-Status: Accepted (13/11/2026)
+Status: Accepted (2026-11-13)
 
 ## Context
 Readable diaries already exist (Kaptain's Log, Space Age's Chronicle). What was missing is structured numbers: when,

@@ -13,10 +13,8 @@
 </p>
 
 > **Status: test build 0.1.0.** Scribe only reads game events and writes one node in your save, so it is low risk, but
-> back up your save before trying it. So far it has run in a test install of KSP 1.12.5 with scripted transactions, a
-> flight (launch, destruction, recovery, a kerbal death, a finished contract), a quickload, an undock and re-dock of a
-> space station, Kerbal Construction Time queues (vessel, tech, facility upgrade) and the removal of the mod from a save.
-> It has **not** been played through a long career. Do not rely on it yet.
+> back up your save before trying it. It has run in a test install with scripted rounds (see Testing) and **has not
+> been played through a long career**. Do not rely on it yet.
 
 Scribe keeps a ledger inside your save: **when** funds, science or reputation changed, by **how much**, to **what
 balance**, and **why** (the reason KSP itself reports, like `ContractReward` or `RnDPartPurchase`). It also notes
@@ -29,8 +27,7 @@ window** and no settings: it is data for other tools, and plain text you can rea
   the *new balance*. Scribe keeps the previous one and records the difference.
 - **Lives in the save.** The ledger is in `persistent.sfs` (scenario `ScribeModule`), so **revert, quickload and save
   backups take it along**. An entry made in a flight you reverted is gone, as it should be.
-- **Light.** It only reacts to game events; nothing runs every frame. In a test with 6,000 fund events it added about
-  1.7 µs per event, and saving the game took the same time (353 ms without, 355 ms with).
+- **Light.** It only reacts to game events; nothing runs every frame, and saving took the same time with it.
 - **Bounded.** It keeps up to 5,000 entries (about 125 bytes each, roughly 630 KB at the limit). Older entries are folded
   into one summary per Kerbin day.
 - **Adds itself.** Put it in a save that never had it: Scribe adds its scenario when you reach the Space Center.
@@ -53,7 +50,8 @@ window** and no settings: it is data for other tools, and plain text you can rea
 
 ## Install
 
-Copy the `GameData/Scribe` folder from the zip into your KSP `GameData`. That's it. There is no public download yet: test builds are
+Copy the `GameData/Scribe` folder from the zip into your KSP `GameData`. It holds two DLLs, `Scribe.dll` and
+`Scribe.Core.dll`; keep both. That's it. There is no public download yet: test builds are
 zips I make myself (see "Building from source").
 
 ## FAQ
@@ -71,13 +69,11 @@ reasons. Scribe fills that gap.
 Not yet. It is plain text in `persistent.sfs`; scripts can read it. A window is not planned.
 
 **Can I remove it?**
-Yes, nothing else depends on it. I tested it: with the `GameData/Scribe` folder gone and the ledger still in the save, the
-game loads normally and logs one harmless line (`Cannot find a Module of typename 'ScribeModule'`), and it writes the
-ledger back unchanged on every save. To clean the save as well, delete the whole `SCENARIO` block with `name = ScribeModule`
-from `persistent.sfs` (and from any quicksave you want to keep), or run `tools/remove-from-save.py --apply <save folder>`
-from the source repo with KSP closed (it keeps a `.bak-scribe` copy and, without `--apply`, only tells you what it would
-remove). Tested: with the block removed the game loads with no error and no trace of Scribe. Put the mod back later with
-the ledger still in the save and it picks up where it stopped.
+Yes, nothing else depends on it. Delete the `GameData/Scribe` folder; the game loads normally and logs one harmless line
+(`Cannot find a Module of typename 'ScribeModule'`). To clean the save too, delete the `SCENARIO` block with
+`name = ScribeModule` from `persistent.sfs`, or run `tools/remove-from-save.py --apply <save folder>` from the source repo
+with KSP closed (it keeps a `.bak-scribe` copy). Put the mod back later and it picks up where it stopped. Details of what
+was tested: [`docs/TESTING.md`](docs/TESTING.md).
 
 **Does it work with docking?**
 Yes. When the game merges two docked vessels it destroys one of them, and Scribe ignores that. Tested by undocking a
@@ -95,14 +91,7 @@ vessel finishes building or enters its queue, so Scribe cannot record those mome
 - Not tested: sandbox or science-only saves and a large long-running career. (The 5,000-entry limit was exercised in a
   real game with 12,000 scripted events, in a test save.)
 - `Missing` kerbals, hired kerbals and contracts other than "completed" were not exercised in a flight yet.
-- Vessels finished in the Kerbal Construction Time queue are not recorded (KCT has no event for it); see the FAQ.
 - The facility entry shows the new level as the game counts it internally, plus one.
-
-## Testing
-
-Every feature above has an ID in [`tests/FEATURES.md`](tests/FEATURES.md) and a test: unit tests for the ledger logic
-and scripted rounds in a running game (launch, destroy, recover, dock, quickload, remove the mod, Kerbal Construction
-Time). How to run them on your own machine: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Reporting problems
 
@@ -121,13 +110,10 @@ reason names and your vessel and kerbal names.
 
 ## Testing
 
-`tests/FEATURES.md` lists every feature this README promises, the layer that proves it and the test. `tools/validate.py`
-checks the `.version`, the CHANGELOG, and that the matrix matches the README and the tests. `sh tests/run.sh` runs 22 xUnit
-tests on the ledger logic (balance differences, trimming, saving and loading; about 99% of the core's lines), with only the
-dotnet SDK and no KSP. `tools/remove-from-save.py`
-takes the ledger out of a save. The parts that need the game
-run only on my own test machine, in a copy of KSP with a scripted driver; the results are in the CHANGELOG under
-"Flown in a career save so far", and the honest summary is: scripted rounds yes, a long career no.
+Every feature above has an ID in [`tests/FEATURES.md`](tests/FEATURES.md) and a test. `sh tests/run.sh` runs the unit tests
+with only the dotnet SDK and no KSP; the eight scripted in-game rounds run only on my own test machine. Results are in the
+CHANGELOG under "Flown in a career save so far". Honest summary: scripted rounds yes, a long career no. How to run
+everything yourself: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Building from source
 

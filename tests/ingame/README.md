@@ -6,4 +6,4 @@
 - `scenarios.json` lists the mods each scenario installs (CKAN id + version) and the rounds it runs.
 - The Scribe scenario is deliberately not in the save: the module adds itself (scenario `menu`), or the runner seeds it.
 
-Needs a licensed KSP 1.12.5; never runs on GitHub Actions. See `docs/TESTING.md` (planned) for the three test levels.
+Needs a licensed KSP 1.12.5; never runs on GitHub Actions. See `docs/TESTING.md` for the three test levels.

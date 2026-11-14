@@ -3,9 +3,9 @@
 Every feature in the README has an ID (`F01`...`F17`) in [`tests/FEATURES.md`](../tests/FEATURES.md), the layer that proves
 it, and the test that does. `tools/validate.py` fails the build when the README, the matrix and the tests drift apart.
 
-You can go as far as you like. Each level needs more than the one before.
+You can go as far as you like. Each step needs more than the one before.
 
-| Level | What runs | Needs | Where |
+| Step | What runs | Needs | Where |
 |---|---|---|---|
 | 1 | Unit tests of the ledger core and the decision rules, the Python tool tests, the matrix check | `dotnet` SDK 8, Python 3 | any machine, GitHub Actions |
 | 2 | Compile the plugin | the same, plus a KSP 1.12.5 you own (the build references its assemblies) | your machine |
@@ -14,7 +14,7 @@ You can go as far as you like. Each level needs more than the one before.
 KSP and Unity cannot be redistributed, so this repository carries no game files, no game DLLs and no Docker image with
 Unity. What it carries is the recipe.
 
-## Level 1: no game needed
+## Step 1: no game needed
 
 ```sh
 python3 tools/validate.py                                  # README, matrix, tests, language
@@ -26,7 +26,11 @@ dotnet test tests/Scribe.Tests/Scribe.Tests.csproj -warnaserror \
 The unit tests are named by feature (`F03_...`), so a failure says which promise broke. The core (`Source/Core`) is plain
 C# with no KSP types; the module only adapts KSP events and `ConfigNode` to it.
 
-## Level 3: rounds in a real game
+## Step 2: compile the plugin
+
+`dotnet build -c Release` in `Source/` with `KSP_DIR` pointing to your KSP install; see the README, "Building from source".
+
+## Step 3: rounds in a real game
 
 Each round starts the game, loads a small synthetic save, lets a test-only add-on drive the game, and prints lines like
 `ASSERT F07 PASS first change after the quickload is exactly -300`. `tests/ingame/check_round.py` turns the log into an
@@ -76,6 +80,9 @@ DISPLAY=:0 tools/run-ingame-all.sh --ksp "<your KSP dir>"
 
 It creates one install per scenario, runs every round of the scenario and prints one line per round. A full pass takes
 about 20 minutes.
+
+`tools/ksp-ingame-ci.sh` does the same inside the Docker image, for the maintainer's own test server. It is not a public CI
+job (see ADR 0005): you do not need it.
 
 ### Display and rendering
 

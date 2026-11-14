@@ -24,4 +24,5 @@ with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as z:
     for name in ("README.md", "CHANGELOG.md", "LICENSE"):
         z.write(name)
 PY
+(cd dist && sha256sum "$(basename "$out")" > "$(basename "$out").sha256")
 echo "$out"

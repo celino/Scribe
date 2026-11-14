@@ -1,5 +1,7 @@
 *.bak-*
 dist/
+__pycache__/
+*.pyc
 ksp-test/
 *.dll
 obj/

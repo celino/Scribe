@@ -1,6 +1,6 @@
 # 0004. Cap the ledger at 5,000 entries and fold the oldest
 
-Status: Accepted (13/11/2026)
+Status: Accepted (2026-11-13)
 
 ## Context
 The ledger is stored in the save ([0001](0001-ledger-lives-in-the-save.md)). A long career has tens of thousands of

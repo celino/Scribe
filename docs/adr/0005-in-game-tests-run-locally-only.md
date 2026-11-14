@@ -1,6 +1,6 @@
 # 0005. In-game tests run locally, never on the public CI
 
-Status: Accepted (13/11/2026)
+Status: Accepted (2026-11-13)
 
 ## Context
 The adapter code can only be proven in a running KSP. KSP and Unity cannot be redistributed, so a public CI runner has

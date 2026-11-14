@@ -1,6 +1,6 @@
 # 0003. The logic lives in `Scribe.Core`, without KSP types
 
-Status: Accepted (13/11/2026)
+Status: Accepted (2026-11-13)
 
 ## Context
 The first version put everything in one KSP plugin. Testing it meant starting the game, which takes minutes. Most of the
@@ -16,6 +16,6 @@ The core targets `net48;netstandard2.0`. Plain `netstandard2.0` does not load in
 Mono), so the `net48` build is the one that ships. The plugin stays on C# 7.3 because that is what KSP 1.12 compiles.
 
 ## Consequences
-- 43 xUnit tests run in seconds on any machine with the .NET SDK; the core has 99% line coverage.
+- The xUnit tests run in seconds on any machine with the .NET SDK, and the core is almost fully covered.
 - The release has two DLLs: `Scribe.dll` and `Scribe.Core.dll`.
 - The adapter is thin, so what the unit tests cannot see is covered by the in-game rounds ([0005](0005-in-game-tests-run-locally-only.md)).

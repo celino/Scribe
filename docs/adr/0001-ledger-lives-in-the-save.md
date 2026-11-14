@@ -1,6 +1,6 @@
 # 0001. The ledger lives in the save, as a scenario node
 
-Status: Accepted (13/11/2026)
+Status: Accepted (2026-11-13)
 
 ## Context
 Scribe records what changed funds, science and reputation, and why. KSP lets players revert a flight, quickload and
