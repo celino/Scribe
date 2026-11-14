@@ -98,7 +98,7 @@ run() {
 attempt=1
 while :; do
 	prepare_save; rm -f "$install/KSP.log"; astart=$(date +%s)
-	if [ -n "${DISPLAY:-}" ]; then run env & else run xvfb-run -a -s "-screen 0 640x360x24" & fi
+	if [ -n "${DISPLAY:-}" ]; then run ${GAME_WRAPPER:-env} & else run xvfb-run -a -s "-screen 0 640x360x24" & fi
 	pid=$!
 	status=ok
 	while kill -0 "$pid" 2>/dev/null; do
