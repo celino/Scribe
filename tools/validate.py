@@ -28,7 +28,7 @@ if "Flown in a career save so far" not in changelog:
     problems.append("CHANGELOG.md has no 'Flown in a career save so far' line")
 
 readme = open("README.md", encoding="utf-8").read()
-for pat in (r"\{\{", r"\[conferir\]"):
+for pat in (r"\{\{", r"\[conferir\]", r"\[RELEASE LINK\]"):
     if re.search(pat, readme):
         problems.append(f"README.md still has {pat}")
 
@@ -74,6 +74,16 @@ for folder in ("Source", "tests", "tools"):
             if ACCENTED.search(line):
                 problems.append(f"{path}:{n}: accented letters (the repo is English only)")
                 break
+
+# language: common Portuguese words without accents (the accent check alone misses them)
+PT = re.compile(r"\b(nao|voce|entao|porque|arquivo|pasta|rodada|nave|jogo|teste de|para o|para a|esta sem)\b", re.I)
+for path in glob.glob("**/*", recursive=True):
+    if not re.search(r"\.(cs|py|sh|json|md|yml|csproj|netkan|version)$", path) or re.search(r"(^|/)(obj|out|bin|TestResults|ksp-test|dist)/|^tools/validate\.py$", path):
+        continue
+    for n, line in enumerate(open(path, encoding="utf-8", errors="replace"), 1):
+        if PT.search(line):
+            problems.append(f"{path}:{n}: looks Portuguese (the repo is English only)")
+            break
 
 # docs: community files exist, every ADR is in the index, relative links in the docs resolve, no accented letters
 for needed in ("CONTRIBUTING.md", "SECURITY.md", "CODE_OF_CONDUCT.md", "docs/adr/README.md"):

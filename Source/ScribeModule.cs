@@ -162,7 +162,7 @@ namespace Scribe
 
         void OnRecovered(ProtoVessel pv, bool quick)
         {
-            if (pv == null) return;
+            if (pv == null || !ScribeRules.IsRecordableVessel(pv.vesselType.ToString())) return;
             Event("recovered", quick ? "RecoveredQuick" : "Recovered", pv.vesselName,
                 pv.orbitSnapShot != null && pv.orbitSnapShot.ReferenceBodyIndex >= 0 ? BodyName(pv.orbitSnapShot.ReferenceBodyIndex) : "", "");
         }

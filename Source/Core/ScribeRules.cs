@@ -38,7 +38,7 @@ namespace Scribe
         public bool ShouldRecord(Guid vesselId, string vesselType, int partCount, float now)
         {
             if (JustCoupled(vesselId, now)) return false;
-            if (vesselType == "Debris" || vesselType == "Flag" || vesselType == "SpaceObject") return false;
+            if (!ScribeRules.IsRecordableVessel(vesselType)) return false;
             if (partCount <= 0) return false;   // nothing left: merged by docking
             return seen.Add(vesselId);
         }
@@ -62,6 +62,12 @@ namespace Scribe
 
     public static class ScribeRules
     {
+        /// <summary>Debris, flags and space objects (asteroids, comets) are not vessels worth a ledger line. <paramref name="vesselType"/> is KSP's VesselType name.</summary>
+        public static bool IsRecordableVessel(string vesselType)
+        {
+            return vesselType != "Debris" && vesselType != "Flag" && vesselType != "SpaceObject";
+        }
+
         /// <summary>Which roster statuses are worth an entry. <paramref name="to"/> is the name of KSP's RosterStatus; null when not recorded.</summary>
         public static string KerbalReason(string to)
         {

@@ -7,7 +7,7 @@ The ledger is stored in the save ([0001](0001-ledger-lives-in-the-save.md)). A l
 fund events. An unbounded node would slow loading and saving.
 
 ## Decision
-Keep at most 5,000 entries (about 125 bytes each, roughly 630 KB). When the cap is passed, fold the oldest entries into
+Keep at most 5,000 entries (about 160 bytes each, roughly 800 KB). When the cap is passed, fold the oldest entries into
 one summary per Kerbin day and type, about 10% extra so it does not run on every add. A summary keeps the summed delta
 and the last balance. If a day-per-type summary still does not fit, the bucket widens until it does.
 

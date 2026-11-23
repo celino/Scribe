@@ -1,0 +1,55 @@
+name: Validate and test
+
+# GitHub Actions. Checks the repo and runs the unit tests on every push and PR.
+# The release zip is not built here: the DLLs are not in git and need KSP's assemblies (see README, "Building from
+# source"), so the zip comes from a local build and is attached to the release by hand.
+# The in-game rounds never run on GitHub (docs/adr/0005-in-game-tests-run-locally-only.md); they run only on the
+# maintainer's own machine (.gitea/workflows).
+
+on:
+  push:
+    branches: [ "master" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            python3 tools/validate.py --tag "${{ github.ref_name }}"
+          else
+            python3 tools/validate.py
+          fi
+
+      - name: Python tests
+        run: python3 -I -m unittest discover -s tests -p "test_*.py"
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Unit tests with coverage
+        run: |
+          dotnet test tests/Scribe.Tests/Scribe.Tests.csproj -warnaserror \
+            --settings tests/coverlet.runsettings --results-directory tests/TestResults \
+            --logger "trx;LogFileName=unit.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: tests/TestResults
+          if-no-files-found: ignore

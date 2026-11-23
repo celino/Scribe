@@ -152,5 +152,19 @@ namespace Scribe.Tests
         {
             Assert.Equal("a  b c / /d", ScribeRules.Clean("a\r\nb\nc //d"));
         }
+
+        // ---- F19 recovered debris, flags and space objects are not recorded ----
+
+        [Theory, Trait("Feature", "F19")]
+        [InlineData("Debris", false)]
+        [InlineData("Flag", false)]
+        [InlineData("SpaceObject", false)]
+        [InlineData("Ship", true)]
+        [InlineData("Probe", true)]
+        [InlineData("Rover", true)]
+        public void F19_recovered_debris_flags_and_space_objects_are_ignored(string type, bool recorded)
+        {
+            Assert.Equal(recorded, ScribeRules.IsRecordableVessel(type));
+        }
     }
 }

@@ -252,5 +252,59 @@ namespace Scribe.Tests
             Assert.Equal(60, back.Sum(x => x.Count));
             Assert.Equal(l.Entries.Sum(x => x.Delta), back.Sum(x => x.Delta), 9);
         }
+
+        // ---- F18 part-by-part charges in one instant are one entry ----
+
+        [Fact, Trait("Feature", "F18")]
+        public void F18_part_by_part_charges_in_one_instant_are_one_entry()
+        {
+            var l = WithBalance("funds", 1000);
+            double b = 1000;
+            for (int i = 0; i < 40; i++) { b -= 10; l.RecordBalance("funds", b, 50.0, "VesselRollout", "Probe", "Kerbin"); }
+            var e = Assert.Single(l.Entries);
+            Assert.Equal(-400, e.Delta, 6);
+            Assert.Equal(600, e.Balance, 6);
+            Assert.Equal(40, e.Count);
+        }
+
+        [Fact, Trait("Feature", "F18")]
+        public void F18_credit_and_debits_of_the_same_reason_stay_apart()
+        {
+            // the recovery with one credit and many debits must stay readable, not net out
+            var l = WithBalance("funds", 1000);
+            double b = 1000;
+            b += 15349; l.RecordBalance("funds", b, 9.0, "VesselRecovery", "Coyote", "");
+            for (int i = 0; i < 31; i++) { b -= 500; l.RecordBalance("funds", b, 9.0, "VesselRecovery", "Coyote", ""); }
+            Assert.Equal(2, l.Entries.Count);
+            Assert.Equal(15349, l.Entries[0].Delta, 6);
+            Assert.Equal(-15500, l.Entries[1].Delta, 6);
+            Assert.Equal(31, l.Entries[1].Count);
+        }
+
+        [Fact, Trait("Feature", "F18")]
+        public void F18_other_instant_reason_or_vessel_is_a_new_entry()
+        {
+            var l = WithBalance("funds", 1000);
+            l.RecordBalance("funds", 990, 10.0, "VesselRollout", "A", "");
+            l.RecordBalance("funds", 980, 12.5, "VesselRollout", "A", "");   // later instant
+            l.RecordBalance("funds", 970, 12.5, "VesselRecovery", "A", "");  // other reason
+            l.RecordBalance("funds", 960, 12.5, "VesselRecovery", "B", "");  // other vessel
+            Assert.Equal(4, l.Entries.Count);
+        }
+
+        [Fact, Trait("Feature", "F18")]
+        public void F18_events_are_never_grouped_and_a_group_survives_save_and_load()
+        {
+            var l = WithBalance("funds", 1000);
+            l.RecordEvent("launch", "Launch", 5.0, "A", "Kerbin", "");
+            l.RecordEvent("launch", "Launch", 5.0, "A", "Kerbin", "");
+            Assert.Equal(2, l.Entries.Count);
+            l.RecordBalance("funds", 990, 6.0, "VesselRollout", "", "");
+            l.RecordBalance("funds", 980, 6.0, "VesselRollout", "", "");
+            var back = Ledger.FromText(Ledger.ToText(l.Entries));
+            Assert.Equal(3, back.Count);
+            Assert.Equal(2, back[2].Count);
+            Assert.Equal(-20, back[2].Delta, 6);
+        }
     }
 }

@@ -70,8 +70,36 @@ namespace Scribe
             if (delta == 0.0) return null;
             var e = new Entry { Ut = ut, Type = kind, Reason = reason ?? "", Delta = delta, Balance = newBalance,
                                 Vessel = vessel ?? "", Body = body ?? "" };
+            Entry same = FindGroup(e);
+            if (same != null)
+            {
+                // KSP charges and refunds part by part: many events in the same instant. One entry per
+                // (type, reason, sign, vessel, body, instant): the summed change, the last balance, and how many.
+                same.Delta += delta;
+                same.Balance = newBalance;
+                same.Count++;
+                return same;
+            }
             Add(e);
             return e;
+        }
+
+        /// <summary>How far back (in entries) and in game seconds a balance change can still join an earlier one.</summary>
+        public const int GroupLookback = 8;
+        public const double GroupWindow = 1.0;
+
+        Entry FindGroup(Entry e)
+        {
+            for (int i = Entries.Count - 1, seen = 0; i >= 0 && seen < GroupLookback; i--, seen++)
+            {
+                Entry o = Entries[i];
+                if (e.Ut - o.Ut > GroupWindow) return null;
+                if (o.Type == e.Type && o.Reason == e.Reason && o.Vessel == e.Vessel && o.Body == e.Body
+                    && o.Text.Length == 0 && Math.Sign(o.Delta) == Math.Sign(e.Delta)
+                    && Math.Abs(e.Ut - o.Ut) <= GroupWindow)
+                    return o;
+            }
+            return null;
         }
 
         public Entry RecordEvent(string type, string reason, double ut, string vessel, string body, string text)

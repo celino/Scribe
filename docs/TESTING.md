@@ -81,8 +81,8 @@ DISPLAY=:0 tools/run-ingame-all.sh --ksp "<your KSP dir>"
 It creates one install per scenario, runs every round of the scenario and prints one line per round. A full pass takes
 about 20 minutes.
 
-`tools/ksp-ingame-ci.sh` does the same inside the Docker image, for the maintainer's own test server. It is not a public CI
-job (see ADR 0005): you do not need it.
+`tools/ksp-ingame-ci.sh` is the maintainer's own test server script (it runs the same rounds inside the Docker image). It
+never runs on public CI (ADR 0005), and you do not need it.
 
 ### Display and rendering
 

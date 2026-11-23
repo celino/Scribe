@@ -1,0 +1,39 @@
+name: Bug report
+description: Something Scribe wrote wrong, did not write, or a save that misbehaves with it.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing! Scribe only reads game events and writes one node in your save, so a report with the
+        `KSP.log` and the `ScribeModule` part of `persistent.sfs` is usually enough to find the cause.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what the ledger shows (or lacks) and what you expected instead.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Scribe, KSP and the other mods that touch funds, science, reputation or contracts.
+      placeholder: "Scribe 0.1.0, KSP 1.12.5, Kerbal Construction Time 1.x"
+    validations:
+      required: true
+  - type: textarea
+    id: ledger
+    attributes:
+      label: The ScribeModule part of persistent.sfs
+      description: |
+        Optional. The few entries around the problem are enough. Kerbal and vessel names are in there, so check it first.
+  - type: textarea
+    id: log
+    attributes:
+      label: KSP.log
+      description: |
+        Attach `KSP.log` from the game folder (drag the file here), taken right after the problem, before restarting the
+        game. Check it for personal paths before attaching. Lines with `[Scribe]` are the most useful ones.
+    validations:
+      required: true

@@ -12,12 +12,16 @@ What changed in each version of Scribe. Newest first. Every entry is written dow
 - Facility upgrades are recorded (`facility`, `Upgraded`), once per upgrade.
 - With Kerbal Construction Time installed, a tech it unlocks is recorded as `TechCompleted` (KCT queues the tech at
   research time and unlocks it later without the stock event). Found by name at run time; Scribe has no reference to KCT.
+- Charges and refunds that KSP makes part by part in the same instant are one entry (summed change, last balance, `count`);
+  credits and debits stay separate. In a real career save this is about a sixth of the entries.
 - `tools/remove-from-save.py` removes the ledger from a save.
 - Tests: unit tests and scripted in-game rounds (see `docs/TESTING.md`).
 
 ### Flown in a career save so far
 
-A synthetic test career (not a played one). Scripted rounds in a test install (KSP 1.12.5, with Kerbal Construction Time and other mods loaded): the eight known
+The 13 Nov build ran in a real career (about ten Kerbin days, Kerbal Construction Time, ScrapYard and about a hundred other mods): 801 entries, 745 balance checks without a break, no errors in the log. The current build (with grouping and the debris filter) has run only in scripted rounds on a synthetic test career, not in a played one.
+
+Scripted rounds in a test install (KSP 1.12.5, with Kerbal Construction Time and other mods loaded): the eight known
 transactions with the right change and reason, a flight with a launch, a destruction, a recovery, a kerbal death and a
 finished contract, a quickload that took the ledger back with the save, and a save without Scribe that got the module added.
 An undock and re-dock of a station module (no false destruction), Kerbal Construction Time driven through its own code

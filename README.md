@@ -2,7 +2,7 @@
 
 <h1 align="center">Scribe</h1>
 
-<p align="center"><i>The funds went down by 300. Scribe wrote down why.</i></p>
+<p align="center"><i>The funds went down by 300. Scribe wrote down what changed, and the reason KSP gave.</i></p>
 
 <p align="center">
   <img alt="KSP 1.12" src="https://img.shields.io/badge/KSP-1.12-1e6fb8">
@@ -21,15 +21,28 @@ balance**, and **why** (the reason KSP itself reports, like `ContractReward` or 
 launches, recoveries, destroyed vessels, kerbal deaths and hirings, contracts and researched technologies. It has **no
 window** and no settings: it is data for other tools, and plain text you can read in `persistent.sfs`.
 
+## Requirements
+
+- KSP 1.12.x (tested on 1.12.5)
+- No other mods. No known conflicts (run with Contract Configurator, Kerbal Construction Time and about a hundred other
+  mods). Not tested with RP-1 or Kerbalism. Kerbal Construction Time is optional (see the FAQ).
+
+## Install
+
+Download `Scribe-0.1.0.zip` from the [latest release]([RELEASE LINK]) and copy its `GameData/Scribe` folder into your KSP
+`GameData`. It holds two DLLs, `Scribe.dll` and `Scribe.Core.dll`; keep both. That's it.
+
 ## What it does
 
 - **Real change, not just the balance.** KSP's `OnFundsChanged`, `OnScienceChanged` and `OnReputationChanged` hand mods
   the *new balance*. Scribe keeps the previous one and records the difference.
 - **Lives in the save.** The ledger is in `persistent.sfs` (scenario `ScribeModule`), so **revert, quickload and save
   backups take it along**. An entry made in a flight you reverted is gone, as it should be.
-- **Light.** It only reacts to game events; nothing runs every frame, and saving took the same time with it.
-- **Bounded.** It keeps up to 5,000 entries (about 125 bytes each, roughly 630 KB at the limit). Older entries are folded
+- **Light.** It only reacts to game events; nothing runs every frame.
+- **Bounded.** It keeps up to 5,000 entries (about 160 bytes each, roughly 800 KB at the limit). Older entries are folded
   into one summary per Kerbin day.
+- **One line per instant.** KSP charges and refunds a vessel part by part, in the same instant. Scribe writes one line per
+  instant, reason and sign, with the summed change and a `count` (credits and debits stay separate).
 - **Adds itself.** Put it in a save that never had it: Scribe adds its scenario when you reach the Space Center.
 
 | It records | With |
@@ -41,18 +54,6 @@ window** and no settings: it is data for other tools, and plain text you can rea
 | Technology researched | tech id |
 | Technology unlocked by Kerbal Construction Time (when it is installed) | tech id |
 | Facility upgraded | facility id and level |
-
-## Requirements
-
-- KSP 1.12.x (tested on 1.12.5)
-- No other mods. No known conflicts: it was run in a test install with Contract Configurator, Kerbal Construction Time
-  and about a hundred other mods loaded. Kerbal Construction Time is optional (see the FAQ).
-
-## Install
-
-Copy the `GameData/Scribe` folder from the zip into your KSP `GameData`. It holds two DLLs, `Scribe.dll` and
-`Scribe.Core.dll`; keep both. That's it. There is no public download yet: test builds are
-zips I make myself (see "Building from source").
 
 ## FAQ
 
@@ -69,11 +70,9 @@ reasons. Scribe fills that gap.
 Not yet. It is plain text in `persistent.sfs`; scripts can read it. A window is not planned.
 
 **Can I remove it?**
-Yes, nothing else depends on it. Delete the `GameData/Scribe` folder; the game loads normally and logs one harmless line
-(`Cannot find a Module of typename 'ScribeModule'`). To clean the save too, delete the `SCENARIO` block with
-`name = ScribeModule` from `persistent.sfs`, or run `tools/remove-from-save.py --apply <save folder>` from the source repo
-with KSP closed (it keeps a `.bak-scribe` copy). Put the mod back later and it picks up where it stopped. Details of what
-was tested: [`docs/TESTING.md`](docs/TESTING.md).
+Yes, nothing else depends on it. Delete `GameData/Scribe`; the game logs one harmless line and loads normally. To clean the
+save too, see [`docs/TESTING.md`](docs/TESTING.md) (`tools/remove-from-save.py`). Put the mod back later and it picks up
+where it stopped.
 
 **Does it work with docking?**
 Yes. When the game merges two docked vessels it destroys one of them, and Scribe ignores that. Tested by undocking a
@@ -95,8 +94,8 @@ vessel finishes building or enters its queue, so Scribe cannot record those mome
 
 ## Reporting problems
 
-Bugs and questions: GitHub Issues, once the repo is public. Until then, tell Evandro. Attach your `KSP.log` (check it for
-personal paths first) and, if you can, the `ScribeModule` part of `persistent.sfs`.
+Open an issue (the bug-report form asks for your versions and `KSP.log`). Check the log for personal paths before you
+attach it and, if you can, add the `ScribeModule` part of `persistent.sfs`.
 
 ## Contributing
 
@@ -110,10 +109,9 @@ reason names and your vessel and kerbal names.
 
 ## Testing
 
-Every feature above has an ID in [`tests/FEATURES.md`](tests/FEATURES.md) and a test. `sh tests/run.sh` runs the unit tests
-with only the dotnet SDK and no KSP; the eight scripted in-game rounds run only on my own test machine. Results are in the
-CHANGELOG under "Flown in a career save so far". Honest summary: scripted rounds yes, a long career no. How to run
-everything yourself: [`docs/TESTING.md`](docs/TESTING.md).
+Every feature above has an ID in [`tests/FEATURES.md`](tests/FEATURES.md) and a test. `sh tests/run.sh` runs the unit
+tests with only the .NET SDK; scripted in-game rounds run only on my own test machine. Honest summary: scripted rounds
+yes, a long career no. Details: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Building from source
 
