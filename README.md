@@ -9,12 +9,13 @@
   <img alt="No dependencies" src="https://img.shields.io/badge/dependencies-none-6a3fb5">
   <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-555">
   <img alt="Made with AI assistance, reviewed and tested by a human" src="https://img.shields.io/badge/made%20with-AI%20assistance-8a8a8a">
-  <img alt="Status: test build, not played in a long career" src="https://img.shields.io/badge/status-test%20build-c0392b">
+  <img alt="Status: work in progress, played in my own career" src="https://img.shields.io/badge/status-test%20build-c0392b">
 </p>
 
-> **Status: test build 0.1.0.** Scribe only reads game events and writes one node in your save, so it is low risk, but
-> back up your save before trying it. It has run in a test install with scripted rounds (see Testing) and **has not
-> been played through a long career**. Do not rely on it yet.
+> **Status: work in progress, 0.1.0.** Scribe only reads game events and writes one node in your save, so it is low
+> risk, but back up your save before trying it. I play it in my own career save (Kerbal Construction Time, ScrapYard
+> and about a hundred other mods) and update my install with every version, so expect changes for a good while. It has
+> also run in scripted rounds in a test install (see Testing). Do not rely on it for a record you cannot lose.
 
 Scribe keeps a ledger inside your save: **when** funds, science or reputation changed, by **how much**, to **what
 balance**, and **why** (the reason KSP itself reports, like `ContractReward` or `RnDPartPurchase`). It also notes
@@ -29,7 +30,7 @@ window** and no settings: it is data for other tools, and plain text you can rea
 
 ## Install
 
-Download `Scribe-0.1.0.zip` from the [latest release]([RELEASE LINK]) and copy its `GameData/Scribe` folder into your KSP
+Download `Scribe-0.1.0.zip` from the [latest release](https://github.com/celino/Scribe/releases/latest) and copy its `GameData/Scribe` folder into your KSP
 `GameData`. It holds two DLLs, `Scribe.dll` and `Scribe.Core.dll`; keep both. That's it.
 
 ## What it does
@@ -111,7 +112,7 @@ reason names and your vessel and kerbal names.
 
 Every feature above has an ID in [`tests/FEATURES.md`](tests/FEATURES.md) and a test. `sh tests/run.sh` runs the unit
 tests with only the .NET SDK; scripted in-game rounds run only on my own test machine. Honest summary: scripted rounds
-yes, a long career no. Details: [`docs/TESTING.md`](docs/TESTING.md).
+yes, and my own career, which is still going; it is not a long, finished one. Details: [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Building from source
 
