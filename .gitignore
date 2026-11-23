@@ -12,3 +12,4 @@ tests/TestResults/
 tests/ingame/driver/out/
 tests/ingame/driver/obj/
 *.pdb
+tests/Scribe.Tests/StrykerOutput/

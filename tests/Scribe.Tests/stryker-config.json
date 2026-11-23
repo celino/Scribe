@@ -1,0 +1,6 @@
+{
+  "stryker-config": {
+    "project": "Scribe.Core.csproj",
+    "reporters": [ "json", "html", "markdown" ]
+  }
+}

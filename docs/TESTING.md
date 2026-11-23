@@ -23,6 +23,8 @@ dotnet test tests/Scribe.Tests/Scribe.Tests.csproj -warnaserror \
   --settings tests/coverlet.runsettings
 ```
 
+Mutation testing (does a test notice a deliberately broken core?) is optional and described in [MUTATION.md](MUTATION.md).
+
 The unit tests are named by feature (`F03_...`), so a failure says which promise broke. The core (`Source/Core`) is plain
 C# with no KSP types; the module only adapts KSP events and `ConfigNode` to it.
 
