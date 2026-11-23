@@ -1,0 +1,11 @@
+# The runtime has no dependencies. These only keep the CI tooling current.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+  - package-ecosystem: "nuget"
+    directory: "/tests/Scribe.Tests"
+    schedule:
+      interval: "monthly"
