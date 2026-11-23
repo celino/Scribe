@@ -22,6 +22,8 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" = "tag" ]; then
             python3 tools/validate.py --tag "${{ github.ref_name }}"
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 tools/validate.py --release
           else
             python3 tools/validate.py
           fi

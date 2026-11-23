@@ -2,7 +2,8 @@
 """Fails early: tests/FEATURES.md matches the README and the unit tests; .version is valid JSON and complete, README has no leftover placeholders, the CHANGELOG has a section
 for the .version's version (and for the tag, with --tag), and the code agrees with the version.
 
-Usage: python3 tools/validate.py [--tag vX.Y.Z]
+Usage: python3 tools/validate.py [--tag vX.Y.Z] [--release]
+  --release (used on pull requests) and --tag also fail while the README still has the [RELEASE LINK] placeholder.
 """
 import json
 import re
@@ -28,7 +29,8 @@ if "Flown in a career save so far" not in changelog:
     problems.append("CHANGELOG.md has no 'Flown in a career save so far' line")
 
 readme = open("README.md", encoding="utf-8").read()
-for pat in (r"\{\{", r"\[conferir\]", r"\[RELEASE LINK\]"):
+release_check = "--tag" in sys.argv or "--release" in sys.argv   # the release link placeholder only blocks tags and pull requests
+for pat in (r"\{\{", r"\[conferir\]") + ((r"\[RELEASE LINK\]",) if release_check else ()):
     if re.search(pat, readme):
         problems.append(f"README.md still has {pat}")
 
