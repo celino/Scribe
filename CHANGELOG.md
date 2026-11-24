@@ -25,8 +25,7 @@ What changed in each version of Scribe. Newest first. Every entry is written dow
 
 ### Flown in a career save so far
 
-Not yet with this version: it is installed in the author's career with the release and this section is updated after the first
-sessions. The 0.1.0 text below still describes what was flown.
+Played in the author's career after release; findings go into the next version. The 0.1.0 text below still describes what was flown.
 
 ## 0.1.0 (2026-11-23)
 
