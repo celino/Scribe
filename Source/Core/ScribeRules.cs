@@ -68,6 +68,28 @@ namespace Scribe
             return vesselType != "Debris" && vesselType != "Flag" && vesselType != "SpaceObject";
         }
 
+        /// <summary>
+        /// Whether a funds, science or reputation change belongs to the vessel being flown. A contract reward, a strategy or a
+        /// building upgrade can land while a vessel is active without having anything to do with it, so they carry no vessel or body.
+        /// <paramref name="reason"/> is the name of KSP's TransactionReasons.
+        /// </summary>
+        public static bool RelatesToVessel(string reason)
+        {
+            switch (reason)
+            {
+                case "VesselRollout":
+                case "VesselRecovery":
+                case "VesselLoss":
+                case "Vessels":
+                case "ScienceTransmission":
+                case "Progression":
+                case "Mission":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
         /// <summary>Which roster statuses are worth an entry. <paramref name="to"/> is the name of KSP's RosterStatus; null when not recorded.</summary>
         public static string KerbalReason(string to)
         {
@@ -80,6 +102,24 @@ namespace Scribe
         public static string FacilityText(string facilityId, int levelIndex)
         {
             return facilityId + " level " + (levelIndex + 1).ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>Name of the body at <paramref name="index"/> in the game's body list; empty when the list or the index does not fit.</summary>
+        public static string BodyAt(IList<string> bodyNames, int index)
+        {
+            return bodyNames != null && index >= 0 && index < bodyNames.Count && bodyNames[index] != null ? bodyNames[index] : "";
+        }
+
+        /// <summary>True for the assembly name of Kerbal Construction Time (checked by name; Scribe has no reference to it).</summary>
+        public static bool IsKctAssembly(string assemblyName)
+        {
+            return assemblyName != null && assemblyName.StartsWith("KerbalConstructionTime", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>The text of an entry whose source may be null (a contract without a title, a missing tech id).</summary>
+        public static string TextOrEmpty(string s)
+        {
+            return s ?? "";
         }
 
         /// <summary>ConfigNode values are one line and "//" starts a comment when the file is read back.</summary>
@@ -128,11 +168,19 @@ namespace Scribe
         public static Ledger Load(SaveNode node)
         {
             var ledger = new Ledger();
+            int schema;
+            ledger.Schema = int.TryParse(node.GetValue("schema"), NumberStyles.Integer, CultureInfo.InvariantCulture, out schema) && schema > 0
+                ? schema : 1;   // a save made before the number existed is version 1
             int cap;
             if (int.TryParse(node.GetValue("cap"), NumberStyles.Integer, CultureInfo.InvariantCulture, out cap) && cap > 0)
                 ledger.Cap = cap;
+            foreach (var v in node.Values)
+                if (v.Key != "cap" && v.Key != "schema") ledger.UnknownValues.Add(v);
             foreach (var n in node.Nodes)
+            {
                 if (n.Key == ScribeInfo.EntryName) ledger.Entries.Add(Ledger.FromPairs(n.Value.Values));
+                else if (n.Key != BalancesNode) ledger.UnknownNodes.Add(n);
+            }
             // last known balances saved with the ledger: they belong to this very save, so a revert/quickload is consistent
             SaveNode b = node.GetNode(BalancesNode);
             if (b != null)
@@ -147,9 +195,12 @@ namespace Scribe
 
         public static void Save(Ledger ledger, SaveNode node)
         {
+            node.AddValue("schema", Math.Max(ledger.Schema, ScribeInfo.Schema).ToString(CultureInfo.InvariantCulture));
             node.AddValue("cap", ledger.Cap.ToString(CultureInfo.InvariantCulture));
             SaveNode b = node.AddNode(BalancesNode);
             foreach (var kv in ledger.Balances) b.AddValue(kv.Key, Ledger.Num(kv.Value));
+            foreach (var v in ledger.UnknownValues) node.AddValue(v.Key, v.Value);
+            foreach (var n in ledger.UnknownNodes) node.Nodes.Add(n);
             foreach (Entry e in ledger.Entries)
             {
                 SaveNode n = node.AddNode(ScribeInfo.EntryName);

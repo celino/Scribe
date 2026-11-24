@@ -203,6 +203,8 @@ public class RoundCenter : MonoBehaviour
             var k = HighLogic.CurrentGame.CrewRoster.Crew.FirstOrDefault(c => c.rosterStatus == ProtoCrewMember.RosterStatus.Available);
             if (k != null) { Rc.Log("killing " + k.name); k.rosterStatus = ProtoCrewMember.RosterStatus.Dead; }
             else Rc.Log("no available kerbal");
+            var k2 = HighLogic.CurrentGame.CrewRoster.Crew.FirstOrDefault(c => c.rosterStatus == ProtoCrewMember.RosterStatus.Available);
+            if (k2 != null) { Rc.Log("making " + k2.name + " missing"); k2.rosterStatus = ProtoCrewMember.RosterStatus.Missing; }
             yield return Wait(0.2f);
             var cs = Contracts.ContractSystem.Instance;
             Rc.Log("contracts: " + (cs == null ? "no system" : string.Join(", ", cs.Contracts.GroupBy(x => x.ContractState.ToString()).Select(g => g.Key + " " + g.Count()).ToArray())));
@@ -213,6 +215,10 @@ public class RoundCenter : MonoBehaviour
                 Rc.Log("contract: " + c.Title);
                 if (c.ContractState == Contracts.Contract.State.Offered) { c.Accept(); Rc.Snap("accepted"); yield return Wait(0.2f); }
                 c.Complete(); Rc.Snap("completed"); yield return Wait(0.2f);
+                // a second and a third contract: one failed, one cancelled (C3: states never seen in a game before)
+                var more = Contracts.ContractSystem.Instance.Contracts.Where(x => x.ContractState == Contracts.Contract.State.Offered).Take(2).ToList();
+                if (more.Count > 0) { more[0].Accept(); yield return Wait(0.2f); try { more[0].Fail(); } catch (Exception ex) { Rc.Log("Fail threw: " + ex.Message); } yield return Wait(0.2f); }
+                if (more.Count > 1) { more[1].Accept(); yield return Wait(0.2f); try { more[1].Cancel(); } catch (Exception ex) { Rc.Log("Cancel threw: " + ex.Message); } yield return Wait(0.2f); }
             }
             else Rc.Log("no offered contract");
             Launch();
@@ -227,6 +233,21 @@ public class RoundCenter : MonoBehaviour
                 "launch/destroyed/recovered entries with a vessel name: " + named("launch") + "/" + named("destroyed") + "/" + named("recovered"));
             Rc.Assert("F10", all.Any(e => e.Type == "kerbal" && e.Text.Length > 0), "kerbal entry for the death");
             Rc.Assert("F10", all.Any(e => e.Type == "contract"), "contract entry (needs a contract offer; scenario contracts)");
+            Rc.Assert("F10", all.Any(e => e.Type == "kerbal" && e.Reason == "Missing"), "kerbal entry for a Missing kerbal");
+            string states = string.Join(",", all.Where(e => e.Type == "contract").Select(e => e.Reason).Distinct().OrderBy(x => x).ToArray());
+            Rc.Log("contract reasons seen: " + states);
+            var ce = all.Where(e => e.Type == "contract").ToList();
+            Guid g;
+            Rc.Assert("F22", ce.All(e => Guid.TryParse(e.Contract, out g)) && ce.All(e => e.Agent.Length > 0),
+                "every contract entry has a GUID and an agency (" + ce.Count + " entries, 0 = no offer in this scenario; first: " + (ce.Count > 0 ? ce[0].Contract + " / " + ce[0].Agent : "-") + ")");
+            var ke = all.Where(e => e.Type == "kerbal" && e.Reason != "Added").ToList();
+            Rc.Assert("F22", ke.Count > 0 && ke.All(e => e.Role.Length > 0), "kerbal entries have a role: " + string.Join(",", ke.Select(e => e.Reason + ":" + e.Role).ToArray()));
+            var inFlight = all.Where(e => e.Type == "funds" && e.Reason == "ContractReward" && e.Text.Length == 0 && Math.Abs(e.Delta - 1234) < 0.01).ToList();
+            var prog = all.Where(e => e.Type == "funds" && e.Reason == "Progression" && Math.Abs(e.Delta - 55) < 0.01).ToList();
+            Rc.Assert("F23", inFlight.Count == 1 && inFlight[0].Vessel.Length == 0 && inFlight[0].Body.Length == 0,
+                "a contract reward paid in flight carries no vessel (" + inFlight.Count + " entry)");
+            Rc.Assert("F23", prog.Count == 1 && prog[0].Vessel.Length > 0 && prog[0].Body.Length > 0,
+                "a progression reward paid in flight carries the vessel and body (" + prog.Count + " entry)");
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             Rc.Log("saved");
             yield return Wait(3f);
@@ -393,6 +414,9 @@ public class RoundFlight : MonoBehaviour
         {
             StageManager.ActivateNextStage(); // first stage on the pad = liftoff, what fires onLaunch
             yield return new WaitForSecondsRealtime(3f);
+            Funding.Instance.AddFunds(1234, TransactionReasons.ContractReward);   // F23: not the vessel's
+            Funding.Instance.AddFunds(55, TransactionReasons.Progression);        // F23: the vessel's
+            yield return new WaitForSecondsRealtime(1.5f);
             Rc.Log("destroying " + v.vesselName);
             v.Die();
             yield return new WaitForSecondsRealtime(5f);

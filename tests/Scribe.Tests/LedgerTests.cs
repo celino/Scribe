@@ -85,6 +85,25 @@ namespace Scribe.Tests
             Assert.Single(l.Entries);
         }
 
+        [Fact, Trait("Feature", "F02")]
+        public void F02_seeding_after_an_early_event_keeps_the_newer_balance()
+        {
+            // save without BALANCES: an event lands in the frame before the seed. It is only remembered (no delta), the seed must
+            // not put the older live value back, and the next event is measured against the remembered balance.
+            var l = new Ledger();
+            Assert.Null(l.RecordBalance("funds", 900, 1, "x", "", ""));
+            l.SeedBalance("funds", 1000);
+            Assert.Equal(-100, l.RecordBalance("funds", 800, 2, "x", "", "").Delta, 6);
+        }
+
+        [Fact, Trait("Feature", "F02")]
+        public void F02_seeding_an_empty_ledger_starts_from_the_live_value()
+        {
+            var l = new Ledger();
+            l.SeedBalance("funds", 1000);
+            Assert.Equal(-100, l.RecordBalance("funds", 900, 1, "x", "", "").Delta, 6);
+        }
+
         // ---- F03 cap and summaries ----
 
         [Fact, Trait("Feature", "F03")]

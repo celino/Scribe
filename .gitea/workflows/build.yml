@@ -42,6 +42,9 @@ jobs:
             --settings tests/coverlet.runsettings --results-directory tests/TestResults \
             --logger "trx;LogFileName=unit.trx"
 
+      - name: Coverage floor (core)
+        run: python3 -I tools/check-coverage.py
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v3
@@ -60,9 +63,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DISPLAY: ":0"
-      CI_ROOT: /mnt/projects/projects/ksp/ci
-      MINIMAL: /mnt/projects/projects/ksp/mods/Scribe/ksp-test/install-minimal
-      KCT: /mnt/projects/projects/ksp/mods/Scribe/ksp-test/install-kct
+      # Set these as repository variables (Settings > Actions > Variables) on the runner's host; there is no default.
+      CI_ROOT: ${{ vars.SCRIBE_CI_ROOT }}
+      MINIMAL: ${{ vars.SCRIBE_INSTALL_MINIMAL }}
+      KCT: ${{ vars.SCRIBE_INSTALL_KCT }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4

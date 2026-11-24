@@ -1,1 +1,5 @@
 blank_issues_enabled: true
+contact_links:
+  - name: Forum thread (questions and discussion)
+    url: https://forum.kerbalspaceprogram.com/topic/232203-112x-scribe-a-ledger-in-your-save-of-every-funds-science-and-reputation-change-with-the-reason-ksp-gave-work-in-progress-010/
+    about: For questions, ideas and general discussion. Bugs go in an issue, with KSP.log.

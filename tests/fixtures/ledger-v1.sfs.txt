@@ -1,0 +1,51 @@
+// A SCRIBE node as Scribe 0.1.0 wrote it (no "schema" line). Frozen: every later version must read it and give the same entries.
+SCRIBE
+{
+	cap = 5000
+	BALANCES
+	{
+		funds = 59999.5
+		science = 12
+		reputation = 3.25
+	}
+	ENTRY
+	{
+		ut = 100
+		type = funds
+		reason = VesselRollout
+		delta = -1200
+		balance = 98800
+		vessel = Kerbal X
+		body = Kerbin
+		count = 3
+	}
+	ENTRY
+	{
+		ut = 101.5
+		type = launch
+		reason = Launch
+		delta = 0
+		balance = 0
+		vessel = Kerbal X
+		body = Kerbin
+	}
+	ENTRY
+	{
+		ut = 21700
+		type = contract
+		reason = Completed
+		delta = 0
+		balance = 0
+		text = First Flight
+	}
+	ENTRY
+	{
+		ut = 21800
+		type = summary
+		reason = summary
+		delta = 500
+		balance = 61000
+		text = folded 40 entries
+		count = 40
+	}
+}

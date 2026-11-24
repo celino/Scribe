@@ -36,9 +36,26 @@ dotnet_naming_symbols.public_symbols.applicable_accessibilities = public
 dotnet_naming_style.pascal.capitalization = pascal_case
 
 # xUnit tests are named F01_what_it_proves
+# CA5394: the property tests use a seeded Random on purpose (a failure must repeat); it is not used for security.
+# CA1861 and CA1823 are about speed and leftovers in code that runs a few hundred times.
 [tests/**.cs]
 dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA5394.severity = none
+dotnet_diagnostic.CA1861.severity = none
+dotnet_diagnostic.CA1823.severity = none
 
 # Entry and SaveNode are plain data holders shared with the plugin; public fields keep them light and the code short
 [Source/Core/*.cs]
 dotnet_diagnostic.CA1051.severity = none
+# Core is an internal library of one mod, not a public API: its callers are the plugin and the tests, which never pass null.
+# Lists are exposed on purpose (the tests and the plugin read and fill them directly).
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1002.severity = none
+
+# Plugin: the event handlers must not throw into the game, so the catch-all around each recording is deliberate (it logs).
+# `Instance` and `Ledger` are public on purpose: the in-game test driver reads them. `Start` is a Unity message and cannot be static.
+[Source/*.cs]
+dotnet_diagnostic.CA1031.severity = none
+dotnet_diagnostic.CA1051.severity = none
+dotnet_diagnostic.CA2211.severity = none
+dotnet_diagnostic.CA1822.severity = none

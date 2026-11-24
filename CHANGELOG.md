@@ -2,6 +2,32 @@
 
 What changed in each version of Scribe. Newest first. Every entry is written down; this file is no exception.
 
+## 0.1.1 (2026-11-24)
+
+- **Format version.** The Scribe node in the save now carries `schema = 1`. A save from 0.1.0 (no number) reads as version 1
+  and loads in full; fields or nodes written by a newer Scribe are kept when an older one saves. A frozen 0.1.0 save is part of
+  the tests.
+- **Contract GUID and agency** on every contract entry (`contract`, `agent`), so two contracts with the same title can be told
+  apart. **Role** (`role`: pilot, engineer, scientist) on kerbal entries.
+- **Vessel and body only when they belong.** Funds, science and reputation changes used to carry the active vessel and body
+  whenever you were in flight, even for a contract reward. Now only the reasons that belong to a vessel carry them (rollout,
+  recovery, loss, science transmission, progress). Entries from 0.1.0 are not changed.
+- A contract event without a title no longer raises an error outside the guarded block; a save node that is missing is ignored.
+- Facility entries: the level is numbered as in the game's menus (the first level is level 1). This was already so; the README
+  said "internal plus one" and now says it plainly.
+- Code: the decisions that need no game (body name, Kerbal Construction Time detection, empty text, seeding a balance) moved
+  to the core and are tested; one table of game events for hooking and unhooking; the plugin builds with warnings as errors.
+- Tests: 120 unit tests (were 53), mutation score 87.06 % (was 72.39 %), a coverage floor in CI (90 % of lines, 80 % of
+  branches; now 100 % and 94.9 %), property tests of the fold. In-game rounds now also cover a missing kerbal, failed and
+  cancelled contracts, the contract GUID and the vessel rule: 9 rounds in 3 scenarios passed (about 0.9 microseconds per event).
+- Repository: no path of the maintainer's machine in the workflows or scripts (the in-game CI job reads its folders from
+  repository variables), `tools/check-coverage.py`, a README for `tools/`.
+
+### Flown in a career save so far
+
+Not yet with this version: it is installed in the author's career with the release and this section is updated after the first
+sessions. The 0.1.0 text below still describes what was flown.
+
 ## 0.1.0 (2026-11-23)
 
 - Ledger of funds, science and reputation changes (real change, new balance, KSP's reason), launches, recoveries,

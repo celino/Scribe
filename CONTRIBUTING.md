@@ -3,7 +3,7 @@
 Thanks for looking. Scribe is a small mod and the bar is simple: a change is ready when it is tested and the log is clean.
 
 ## Before you start
-- Bug or idea? Open an issue first (once the repo is public; until then, tell Evandro). Say what you saw, the KSP and
+- Bug or idea? Open an issue first. Say what you saw, the KSP and
   Scribe versions, and attach `KSP.log` (check it for personal paths) and the `ScribeModule` part of `persistent.sfs`.
 - Read the [decision records](docs/adr/README.md). If your change goes against one, say so in the issue.
 

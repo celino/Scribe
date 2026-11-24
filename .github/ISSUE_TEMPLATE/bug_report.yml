@@ -19,7 +19,7 @@ body:
     attributes:
       label: Versions
       description: Scribe, KSP and the other mods that touch funds, science, reputation or contracts.
-      placeholder: "Scribe 0.1.0, KSP 1.12.5, Kerbal Construction Time 1.x"
+      placeholder: "Scribe 0.1.1, KSP 1.12.5, Kerbal Construction Time 1.x"
     validations:
       required: true
   - type: textarea

@@ -7,6 +7,8 @@ namespace Scribe.Tests
     // Layer 3: the decisions of the KSP module, tested without the game. Each regression names the bug it came from.
     public class RulesTests
     {
+        static readonly string[] Bodies = { "Sun", "Kerbin", "Mun" };
+        static readonly string[] NullBody = { null };
         static readonly Guid A = Guid.NewGuid();
         static readonly Guid B = Guid.NewGuid();
 
@@ -165,6 +167,44 @@ namespace Scribe.Tests
         public void F19_recovered_debris_flags_and_space_objects_are_ignored(string type, bool recorded)
         {
             Assert.Equal(recorded, ScribeRules.IsRecordableVessel(type));
+        }
+
+        // ---- F20 events with missing data are recorded, not lost ----
+
+        [Fact, Trait("Feature", "F20")]
+        public void F20_a_contract_without_a_title_is_empty_text()
+        {
+            Assert.Equal("", ScribeRules.TextOrEmpty(null));
+            Assert.Equal("Land on the Mun", ScribeRules.TextOrEmpty("Land on the Mun"));
+        }
+
+        [Theory, Trait("Feature", "F20")]
+        [InlineData(-1)]
+        [InlineData(3)]
+        [InlineData(99)]
+        public void F20_a_body_index_outside_the_list_is_empty(int index)
+        {
+            Assert.Equal("", ScribeRules.BodyAt(Bodies, index));
+        }
+
+        [Fact, Trait("Feature", "F20")]
+        public void F20_body_lookup_finds_the_name_and_survives_a_null_list_or_name()
+        {
+            Assert.Equal("Mun", ScribeRules.BodyAt(Bodies, 2));
+            Assert.Equal("", ScribeRules.BodyAt(null, 0));
+            Assert.Equal("", ScribeRules.BodyAt(NullBody, 0));
+        }
+
+        [Theory, Trait("Feature", "F20")]
+        [InlineData("KerbalConstructionTime", true)]
+        [InlineData("kerbalconstructiontime", true)]
+        [InlineData("KerbalConstructionTimeLegacy", true)]
+        [InlineData("Scribe", false)]
+        [InlineData("", false)]
+        [InlineData(null, false)]
+        public void F20_kct_is_found_by_assembly_name(string name, bool expected)
+        {
+            Assert.Equal(expected, ScribeRules.IsKctAssembly(name));
         }
     }
 }

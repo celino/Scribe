@@ -32,7 +32,7 @@ save=scribe-test
 case "$round" in
 	tx) expect=F01 ;;
 	revert) expect=F07 ;;
-	flight) expect=F08,F10 ;;
+	flight) expect=F08,F10,F22,F23 ;;
 	bench) expect=F13,F03 ;;
 	menu) expect=F12; seed=0 ;;
 	noscribe) expect=F14; seed=0 ;;
@@ -48,18 +48,18 @@ mkdir -p "$out"
 
 # dotnet on PATH, or else the test image (docker build -t scribe-ksp-test tests/ingame/docker); needs the repo and the install
 # to be reachable under the same paths, so they are mounted at /src and /ksp
-dotnet_build() {   # dotnet_build <csproj> <output dir>
+dotnet_build() {   # dotnet_build <csproj> <output dir> [extra dotnet args]
 	if command -v dotnet >/dev/null 2>&1; then
-		dotnet build "$1" -c Release -p:KspDir="$install" -o "$2" -v q -nologo
+		dotnet build "$1" -c Release -p:KspDir="$install" -o "$2" -v q -nologo ${3:-}
 	else
 		mkdir -p "$2"
 		docker run --rm -u "$(id -u)" -e HOME=/tmp -v "$here":/src -v "$install":/ksp:ro -v "$(cd "$2" && pwd -P)":/o \
-			"${KSP_IMAGE:-scribe-ksp-test}" dotnet build "/src/${1#"$here"/}" -c Release -p:KspDir=/ksp -o /o -v q -nologo
+			"${KSP_IMAGE:-scribe-ksp-test}" dotnet build "/src/${1#"$here"/}" -c Release -p:KspDir=/ksp -o /o -v q -nologo ${3:-}
 	fi
 }
 # --build-plugin: compile Scribe.dll and Scribe.Core.dll from this checkout into the install (CI; locally the install already has them)
 if [ "$build_plugin" = 1 ]; then
-	dotnet_build "$here/Source/Scribe.csproj" "$out/plugin" >"$out/build-plugin.txt" 2>&1 \
+	dotnet_build "$here/Source/Scribe.csproj" "$out/plugin" -warnaserror >"$out/build-plugin.txt" 2>&1 \
 		|| { echo "plugin build failed, see $out/build-plugin.txt" >&2; exit 1; }
 	cp "$out/plugin/Scribe.dll" "$out/plugin/Scribe.Core.dll" "$install/GameData/Scribe/Plugins/"
 fi
