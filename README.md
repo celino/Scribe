@@ -92,7 +92,7 @@ vessel finishes building or enters its queue, so Scribe cannot record those mome
 
 - Not tested: sandbox or science-only saves and a large long-running career. (The 5,000-entry limit was exercised in a
   real game with 12,000 scripted events, in a test save.)
-- `Missing` kerbals and contracts other than "completed" (failed, cancelled) were not exercised in a flight yet. Hired kerbals and completed contracts were seen in a real career save.
+- `Missing` kerbals and contracts other than "completed" (failed, cancelled) are covered by scripted in-game rounds, but not yet seen in a real career save. Hired kerbals and completed contracts were seen in a real career save.
 
 ## Reporting problems
 
