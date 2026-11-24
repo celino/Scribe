@@ -34,62 +34,68 @@ namespace Scribe
             if (Instance == this) Instance = null;
         }
 
+        // One table for every game event: Hook adds them all, Unhook removes the same ones.
+        List<KeyValuePair<Action, Action>> Subscriptions()
+        {
+            var t = new List<KeyValuePair<Action, Action>>();
+            t.Add(Sub(() => GameEvents.OnFundsChanged.Add(OnFunds), () => GameEvents.OnFundsChanged.Remove(OnFunds)));
+            t.Add(Sub(() => GameEvents.OnScienceChanged.Add(OnScience), () => GameEvents.OnScienceChanged.Remove(OnScience)));
+            t.Add(Sub(() => GameEvents.OnReputationChanged.Add(OnReputation), () => GameEvents.OnReputationChanged.Remove(OnReputation)));
+            t.Add(Sub(() => GameEvents.onLaunch.Add(OnLaunch), () => GameEvents.onLaunch.Remove(OnLaunch)));
+            t.Add(Sub(() => GameEvents.onVesselRecovered.Add(OnRecovered), () => GameEvents.onVesselRecovered.Remove(OnRecovered)));
+            t.Add(Sub(() => GameEvents.onVesselWillDestroy.Add(OnVesselDestroy), () => GameEvents.onVesselWillDestroy.Remove(OnVesselDestroy)));
+            t.Add(Sub(() => GameEvents.onVesselDestroy.Add(OnVesselDestroy), () => GameEvents.onVesselDestroy.Remove(OnVesselDestroy)));
+            t.Add(Sub(() => GameEvents.onKerbalStatusChange.Add(OnKerbalStatus), () => GameEvents.onKerbalStatusChange.Remove(OnKerbalStatus)));
+            t.Add(Sub(() => GameEvents.onKerbalAdded.Add(OnKerbalAdded), () => GameEvents.onKerbalAdded.Remove(OnKerbalAdded)));
+            t.Add(Sub(() => GameEvents.onPartCouple.Add(OnCouple), () => GameEvents.onPartCouple.Remove(OnCouple)));
+            t.Add(Sub(() => GameEvents.OnTechnologyResearched.Add(OnTech), () => GameEvents.OnTechnologyResearched.Remove(OnTech)));
+            t.Add(Sub(() => GameEvents.OnKSCFacilityUpgraded.Add(OnFacilityUpgraded), () => GameEvents.OnKSCFacilityUpgraded.Remove(OnFacilityUpgraded)));
+            t.Add(Sub(() => GameEvents.Contract.onAccepted.Add(OnContractAccepted), () => GameEvents.Contract.onAccepted.Remove(OnContractAccepted)));
+            t.Add(Sub(() => GameEvents.Contract.onCompleted.Add(OnContractCompleted), () => GameEvents.Contract.onCompleted.Remove(OnContractCompleted)));
+            t.Add(Sub(() => GameEvents.Contract.onFailed.Add(OnContractFailed), () => GameEvents.Contract.onFailed.Remove(OnContractFailed)));
+            t.Add(Sub(() => GameEvents.Contract.onCancelled.Add(OnContractCancelled), () => GameEvents.Contract.onCancelled.Remove(OnContractCancelled)));
+            return t;
+        }
+
+        static KeyValuePair<Action, Action> Sub(Action add, Action remove)
+        {
+            return new KeyValuePair<Action, Action>(add, remove);
+        }
+
+        List<KeyValuePair<Action, Action>> subs;
+
         void Hook()
         {
             if (hooked) return;
             hooked = true;
-            GameEvents.OnFundsChanged.Add(OnFunds);
-            GameEvents.OnScienceChanged.Add(OnScience);
-            GameEvents.OnReputationChanged.Add(OnReputation);
-            GameEvents.onLaunch.Add(OnLaunch);
-            GameEvents.onVesselRecovered.Add(OnRecovered);
-            GameEvents.onVesselWillDestroy.Add(OnVesselDestroy);
-            GameEvents.onVesselDestroy.Add(OnVesselDestroy);
-            GameEvents.onKerbalStatusChange.Add(OnKerbalStatus);
-            GameEvents.onKerbalAdded.Add(OnKerbalAdded);
-            GameEvents.onPartCouple.Add(OnCouple);
-            GameEvents.OnTechnologyResearched.Add(OnTech);
-            GameEvents.OnKSCFacilityUpgraded.Add(OnFacilityUpgraded);
+            if (subs == null) subs = Subscriptions();
+            foreach (var s in subs) s.Key();
             StartCoroutine(HookKct());
-            GameEvents.Contract.onAccepted.Add(OnContractAccepted);
-            GameEvents.Contract.onCompleted.Add(OnContractCompleted);
-            GameEvents.Contract.onFailed.Add(OnContractFailed);
-            GameEvents.Contract.onCancelled.Add(OnContractCancelled);
         }
 
         void Unhook()
         {
             if (!hooked) return;
             hooked = false;
-            GameEvents.OnFundsChanged.Remove(OnFunds);
-            GameEvents.OnScienceChanged.Remove(OnScience);
-            GameEvents.OnReputationChanged.Remove(OnReputation);
-            GameEvents.onLaunch.Remove(OnLaunch);
-            GameEvents.onVesselRecovered.Remove(OnRecovered);
-            GameEvents.onVesselWillDestroy.Remove(OnVesselDestroy);
-            GameEvents.onVesselDestroy.Remove(OnVesselDestroy);
-            GameEvents.onKerbalStatusChange.Remove(OnKerbalStatus);
-            GameEvents.onKerbalAdded.Remove(OnKerbalAdded);
-            GameEvents.onPartCouple.Remove(OnCouple);
-            GameEvents.OnTechnologyResearched.Remove(OnTech);
-            GameEvents.OnKSCFacilityUpgraded.Remove(OnFacilityUpgraded);
+            foreach (var s in subs) s.Value();
             if (kctTechDone != null) { kctTechDone.Remove(OnKctTechCompleted); kctTechDone = null; }
-            GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
-            GameEvents.Contract.onCompleted.Remove(OnContractCompleted);
-            GameEvents.Contract.onFailed.Remove(OnContractFailed);
-            GameEvents.Contract.onCancelled.Remove(OnContractCancelled);
         }
 
         // ---- save / load ----
 
         public override void OnLoad(ConfigNode node)
         {
+            if (node == null) return;
             Ledger = LedgerStore.Load(ToSaveNode(node));
+            if (Ledger.Schema > ScribeInfo.Schema)
+                Debug.LogWarning("[Scribe] This save was written by a newer Scribe (format " + Ledger.Schema + "; this one knows " + ScribeInfo.Schema
+                    + "). Fields it does not know are kept as they are.");
             StartCoroutine(SeedBalances());
         }
 
         public override void OnSave(ConfigNode node)
         {
+            if (node == null) return;
             var tree = new SaveNode();
             LedgerStore.Save(Ledger, tree);
             FromSaveNode(tree, node);
@@ -113,9 +119,9 @@ namespace Scribe
         IEnumerator SeedBalances()
         {
             yield return null;
-            if (Funding.Instance != null && !Ledger.HasBalance(Funds)) Ledger.SetBalance(Funds, Funding.Instance.Funds);
-            if (ResearchAndDevelopment.Instance != null && !Ledger.HasBalance(Science)) Ledger.SetBalance(Science, ResearchAndDevelopment.Instance.Science);
-            if (Reputation.Instance != null && !Ledger.HasBalance(Rep)) Ledger.SetBalance(Rep, Reputation.Instance.reputation);
+            if (Funding.Instance != null) Ledger.SeedBalance(Funds, Funding.Instance.Funds);
+            if (ResearchAndDevelopment.Instance != null) Ledger.SeedBalance(Science, ResearchAndDevelopment.Instance.Science);
+            if (Reputation.Instance != null) Ledger.SeedBalance(Rep, Reputation.Instance.reputation);
         }
 
         // ---- helpers ----
@@ -139,7 +145,12 @@ namespace Scribe
 
         void Balance(string kind, double value, TransactionReasons reason)
         {
-            try { Ledger.RecordBalance(kind, value, Now(), reason.ToString(), ActiveVessel(), ActiveBody()); }
+            try
+            {
+                string r = reason.ToString();
+                bool ofVessel = ScribeRules.RelatesToVessel(r);   // a contract reward in flight is not the active vessel's
+                Ledger.RecordBalance(kind, value, Now(), r, ofVessel ? ActiveVessel() : "", ofVessel ? ActiveBody() : "");
+            }
             catch (Exception ex) { Debug.LogError("[Scribe] " + kind + ": " + ex); }
         }
 
@@ -147,6 +158,24 @@ namespace Scribe
         {
             try { Ledger.RecordEvent(type, reason, Now(), vessel, body, text); }
             catch (Exception ex) { Debug.LogError("[Scribe] " + type + ": " + ex); }
+        }
+
+        void ContractEvent(string reason, Contract c)
+        {
+            try
+            {
+                if (c == null) { Ledger.RecordEvent("contract", reason, Now(), "", "", ""); return; }
+                var e = new Entry { Ut = Now(), Type = "contract", Reason = reason, Text = ScribeRules.TextOrEmpty(c.Title),
+                                    Contract = c.ContractGuid.ToString(), Agent = c.Agent != null ? ScribeRules.TextOrEmpty(c.Agent.Name) : "" };
+                Ledger.Add(e);
+            }
+            catch (Exception ex) { Debug.LogError("[Scribe] contract: " + ex); }
+        }
+
+        void KerbalEvent(string reason, ProtoCrewMember k, string vessel, string body)
+        {
+            try { Ledger.Add(new Entry { Ut = Now(), Type = "kerbal", Reason = reason, Vessel = vessel, Body = body, Text = k.name, Role = ScribeRules.TextOrEmpty(k.trait) }); }
+            catch (Exception ex) { Debug.LogError("[Scribe] kerbal: " + ex); }
         }
 
         // ---- events ----
@@ -169,8 +198,10 @@ namespace Scribe
 
         static string BodyName(int index)
         {
-            CelestialBody b = FlightGlobals.Bodies != null && index < FlightGlobals.Bodies.Count ? FlightGlobals.Bodies[index] : null;
-            return b != null ? b.bodyName : "";
+            var names = new List<string>();
+            if (FlightGlobals.Bodies != null)
+                foreach (CelestialBody b in FlightGlobals.Bodies) names.Add(b != null ? b.bodyName : null);
+            return ScribeRules.BodyAt(names, index);
         }
 
         void OnCouple(GameEvents.FromToAction<Part, Part> a)
@@ -192,12 +223,12 @@ namespace Scribe
             if (k == null) return;
             string reason = ScribeRules.KerbalReason(to.ToString());
             if (reason == null) return;
-            Event("kerbal", reason, ActiveVessel(), ActiveBody(), k.name);
+            KerbalEvent(reason, k, ActiveVessel(), ActiveBody());
         }
 
         void OnKerbalAdded(ProtoCrewMember k)
         {
-            if (k != null) Event("kerbal", "Added", "", "", k.name);
+            if (k != null) KerbalEvent("Added", k, "", "");
         }
 
         void OnTech(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> a)
@@ -224,7 +255,7 @@ namespace Scribe
         {
             bool present = false;
             foreach (AssemblyLoader.LoadedAssembly a in AssemblyLoader.loadedAssemblies)
-                if (a.name != null && a.name.StartsWith("KerbalConstructionTime", StringComparison.OrdinalIgnoreCase)) { present = true; break; }
+                if (ScribeRules.IsKctAssembly(a.name)) { present = true; break; }
             if (!present) yield break;
             for (int i = 0; i < 20 && kctTechDone == null; i++)
             {
@@ -240,9 +271,9 @@ namespace Scribe
             if (n != null) Event("tech", "TechCompleted", "", "", n.techID);
         }
 
-        void OnContractAccepted(Contract c) { Event("contract", "Accepted", "", "", c.Title); }
-        void OnContractCompleted(Contract c) { Event("contract", "Completed", "", "", c.Title); }
-        void OnContractFailed(Contract c) { Event("contract", "Failed", "", "", c.Title); }
-        void OnContractCancelled(Contract c) { Event("contract", "Cancelled", "", "", c.Title); }
+        void OnContractAccepted(Contract c) { ContractEvent("Accepted", c); }
+        void OnContractCompleted(Contract c) { ContractEvent("Completed", c); }
+        void OnContractFailed(Contract c) { ContractEvent("Failed", c); }
+        void OnContractCancelled(Contract c) { ContractEvent("Cancelled", c); }
     }
 }

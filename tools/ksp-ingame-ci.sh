@@ -13,7 +13,7 @@ set -eu
 cd "$(dirname "$0")/.."
 
 : "${KSP_INSTALL:?set KSP_INSTALL to the prepared install (host path)}"
-: "${CI_ROOT:=/mnt/projects/projects/ksp/ci}"
+: "${CI_ROOT:?set CI_ROOT to a host folder the overlay layers can live in (no default)}"
 : "${KSP_IMAGE:=scribe-ksp-test}"
 : "${ROUNDS:=tx revert flight bench}"
 id="scribe-${RUN_ID:-local-$$}"

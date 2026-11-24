@@ -17,20 +17,25 @@ dotnet stryker                                          # reads stryker-config.j
 Only the core (`Source/Core`, plain C#, no KSP types) is mutated. The KSP module cannot be unit tested without the
 game; the in-game rounds cover it (see [TESTING.md](TESTING.md)).
 
-## Result (23 November 2026, Stryker.NET 4.8.1, 53 unit tests)
+## Result (24 November 2026, Stryker.NET 4.8.1, 91 unit tests)
 
-| | |
-|---|---|
-| Mutants created | 344 |
-| Not tested (compile errors, already-covered blocks, no coverage) | 84 (36 + 40 + 8) |
-| Tested | 260 |
-| Killed (incl. 11 timeouts) | 194 |
-| Survived | 66 (64 in `ScribeCore.cs`, 2 in `ScribeRules.cs`) |
-| **Mutation score** | **72.39 %** |
+| | 23 Nov (53 tests) | 24 Nov (91 tests) |
+|---|---|---|
+| Mutants created | 344 | 367 |
+| Not tested (compile errors, already-covered blocks, no coverage) | 84 | 88 |
+| Tested | 260 | 279 |
+| Killed (incl. timeouts) | 194 | 249 (11 timeouts) |
+| Survived | 66 | 30 (plus 7 with no coverage, counted as survivors) |
+| **Mutation score** | 72.39 % | **87.06 %** |
 
-Unit-test coverage at the same commit: 100 % of lines (251/251), 95.5 % of branches (191/200).
+The jump comes from `tests/Scribe.Tests/BoundaryTests.cs`, written from the table below: the exact window and lookback of the
+grouping, the cap at `Cap` and `Cap + 1`, the shape of a fold, every field after a round trip, and properties over random
+sequences (the cap holds, nothing is lost).
 
-## What survived, and why
+Unit-test coverage of the core on 24 November: 100 % of lines, 94.9 % of branches. `tools/check-coverage.py` keeps a floor
+of 90 % and 80 % in CI.
+
+## What survived, and why (the table is the 23 November one; the verdicts below say what is still open)
 
 | Group | Where | What it means | Verdict |
 |---|---|---|---|
@@ -48,6 +53,12 @@ Unit-test coverage at the same commit: 100 % of lines (251/251), 95.5 % of branc
 Nothing here is a bug in the mod: the tests pass and the in-game rounds agree. The survivors say where the tests are
 weaker than the 100 % line coverage suggests: **boundaries and the shape of the folded ledger**.
 
-## Not done
+## Still open after the new tests
 
-No tests were added for the survivors (this document only reports them), and the module (`Source/Plugin`) is not mutated.
+- The default values of `Entry` fields and the empty strings in `RecordEvent`/`RecordBalance` (`?? ""`): equivalent mutants, nothing reads the difference.
+- The deepest fold levels (`level >= 40`, `level >= 41`, the jump from level 20 to 40): they only run when a cap is tiny and the
+  days are far apart. `F04` and the property tests reach them, but none asserts which level was used. Pinning that would freeze an
+  implementation detail, so it stays open on purpose.
+- Two boundaries of the facility debounce (`lastAt = -10f`, `<` vs `<=` on the window) and the `i >= 0` guard in `Unescape`.
+
+The module (`Source/ScribeModule.cs`) is not mutated; the in-game rounds cover it.

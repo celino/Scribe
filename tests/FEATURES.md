@@ -29,3 +29,7 @@ without KSP, **L4** = scripted rounds in a real game (local machine only, never 
 | F17 | Facility upgrade: the same upgrade fired twice is one entry | facility id and level | L3 | automated | `F17_` |
 | F18 | Charges and refunds KSP makes part by part in one instant become one entry (summed change, last balance, `count`); credits and debits of the same reason stay separate | One line per instant | L2 | automated | `F18_` |
 | F19 | Recovered debris, flags and space objects are not recorded (the same rule as for destruction) | debris and flags ignored | L3 | automated | `F19_` |
+| F20 | Events with missing data (a contract without a title, a body index outside the list) are recorded with empty text; Kerbal Construction Time is found by assembly name | Kerbal dead or missing | L3 | automated | `F20_` |
+| F21 | The save carries a format version (`schema`); a save from 0.1.0 without it loads in full, and fields written by a newer version are kept | Format version | L2 | automated | `F21_` |
+| F22 | A contract entry has the contract GUID and the agency; a kerbal entry has the role | contract GUID | L2 | automated | `F22_` |
+| F23 | Funds, science and reputation changes carry the active vessel and body only when the reason belongs to a vessel | only when the reason belongs to a vessel | L3 | automated | `F23_` |

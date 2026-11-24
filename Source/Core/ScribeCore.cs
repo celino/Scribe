@@ -12,6 +12,12 @@ namespace Scribe
         public const string EntryName = "ENTRY";
         public const int DefaultCap = 5000;
         public const double KerbinDay = 21600.0;
+        /// <summary>
+        /// The version of the save format. 1 = everything 0.1.x writes. New fields are optional and added to the end, so a newer
+        /// Scribe reads an older save and an older Scribe still reads a newer one (it keeps the fields it does not know).
+        /// The number goes up only when a field changes meaning or goes away.
+        /// </summary>
+        public const int Schema = 1;
     }
 
     /// <summary>One line of the ledger.</summary>
@@ -26,6 +32,11 @@ namespace Scribe
         public string Body = "";
         public string Text = "";
         public int Count = 1;        // >1 only in summaries: how many entries were folded
+        public string Contract = ""; // contract events: the contract's GUID (the title alone can repeat)
+        public string Agent = "";    // contract events: the agency that offered it
+        public string Role = "";     // kerbal events: Pilot, Engineer, Scientist...
+        /// <summary>Fields this version does not know (written by a newer one): kept and written back unchanged.</summary>
+        public readonly List<KeyValuePair<string, string>> Unknown = new List<KeyValuePair<string, string>>();
 
         public bool IsBalance
         {
@@ -37,12 +48,27 @@ namespace Scribe
     {
         public readonly List<Entry> Entries = new List<Entry>();
         public int Cap = ScribeInfo.DefaultCap;
+        /// <summary>The save format version this ledger was read with (1 when the save had none). Written back, never lowered.</summary>
+        public int Schema = 1;
+        /// <summary>Top-level values and nodes of the save node that this version does not know: kept and written back (a newer Scribe wrote them).</summary>
+        public readonly List<KeyValuePair<string, string>> UnknownValues = new List<KeyValuePair<string, string>>();
+        public readonly List<KeyValuePair<string, SaveNode>> UnknownNodes = new List<KeyValuePair<string, SaveNode>>();
         readonly Dictionary<string, double> last = new Dictionary<string, double>();
 
         /// <summary>Sets the balance the next change is measured against (on load, or when a scene starts).</summary>
         public void SetBalance(string kind, double balance)
         {
             last[kind] = balance;
+        }
+
+        /// <summary>
+        /// Starts from the live value only when no balance is known. An event that arrived before this (the frame after the load)
+        /// has already remembered the newer balance; the live value must not replace it. That one event is not recorded (nothing to
+        /// measure it against), and every later one is.
+        /// </summary>
+        public void SeedBalance(string kind, double live)
+        {
+            if (!last.ContainsKey(kind)) last[kind] = live;
         }
 
         public IEnumerable<KeyValuePair<string, double>> Balances
@@ -180,6 +206,10 @@ namespace Scribe
             if (e.Body.Length > 0) l.Add(new KeyValuePair<string, string>("body", e.Body));
             if (e.Text.Length > 0) l.Add(new KeyValuePair<string, string>("text", e.Text));
             if (e.Count != 1) l.Add(new KeyValuePair<string, string>("count", e.Count.ToString(CultureInfo.InvariantCulture)));
+            if (e.Contract.Length > 0) l.Add(new KeyValuePair<string, string>("contract", e.Contract));
+            if (e.Agent.Length > 0) l.Add(new KeyValuePair<string, string>("agent", e.Agent));
+            if (e.Role.Length > 0) l.Add(new KeyValuePair<string, string>("role", e.Role));
+            l.AddRange(e.Unknown);
             return l;
         }
 
@@ -202,6 +232,10 @@ namespace Scribe
                         int c;
                         e.Count = int.TryParse(p.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out c) ? c : 1;
                         break;
+                    case "contract": e.Contract = p.Value; break;
+                    case "agent": e.Agent = p.Value; break;
+                    case "role": e.Role = p.Value; break;
+                    default: e.Unknown.Add(p); break;
                 }
             }
             return e;

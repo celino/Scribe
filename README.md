@@ -12,7 +12,7 @@
   <img alt="Status: work in progress, played in my own career" src="https://img.shields.io/badge/status-test%20build-c0392b">
 </p>
 
-> **Status: work in progress, 0.1.0.** Scribe only reads game events and writes one node in your save, so it is low
+> **Status: work in progress, 0.1.1.** Scribe only reads game events and writes one node in your save, so it is low
 > risk, but back up your save before trying it. I play it in my own career save (Kerbal Construction Time, ScrapYard
 > and about a hundred other mods) and update my install with every version, so expect changes for a good while. It has
 > also run in scripted rounds in a test install (see Testing). Do not rely on it for a record you cannot lose.
@@ -30,7 +30,7 @@ window** and no settings: it is data for other tools, and plain text you can rea
 
 ## Install
 
-Download `Scribe-0.1.0.zip` from the [latest release](https://github.com/celino/Scribe/releases/latest) and copy its `GameData/Scribe` folder into your KSP
+Download `Scribe-0.1.1.zip` from the [latest release](https://github.com/celino/Scribe/releases/latest) and copy its `GameData/Scribe` folder into your KSP
 `GameData`. It holds two DLLs, `Scribe.dll` and `Scribe.Core.dll`; keep both. That's it.
 
 ## What it does
@@ -44,17 +44,19 @@ Download `Scribe-0.1.0.zip` from the [latest release](https://github.com/celino/
   into one summary per Kerbin day.
 - **One line per instant.** KSP charges and refunds a vessel part by part, in the same instant. Scribe writes one line per
   instant, reason and sign, with the summed change and a `count` (credits and debits stay separate).
+- **Format version.** The save node carries a `schema` number (1 today). A save from 0.1.0 has none and reads as version 1;
+  fields written by a newer Scribe are kept, not dropped, if you go back to an older one.
 - **Adds itself.** Put it in a save that never had it: Scribe adds its scenario when you reach the Space Center.
 
 | It records | With |
 |---|---|
-| Funds, science, reputation | change, new balance, KSP's reason, vessel and body if in flight |
+| Funds, science, reputation | change, new balance, KSP's reason; vessel and body only when the reason belongs to a vessel (rollout, recovery, loss, science transmission, progress), so a contract reward in flight is not charged to the ship |
 | Launch, recovery, destruction | vessel name and body (debris and flags ignored) |
-| Kerbal dead or missing, kerbal hired | kerbal name |
-| Contract accepted, completed, failed, cancelled | contract title |
+| Kerbal dead or missing, kerbal hired | kerbal name and role (pilot, engineer, scientist) |
+| Contract accepted, completed, failed, cancelled | contract title, contract GUID and the agency that offered it |
 | Technology researched | tech id |
 | Technology unlocked by Kerbal Construction Time (when it is installed) | tech id |
-| Facility upgraded | facility id and level |
+| Facility upgraded | facility id and level, numbered as in the game's menus (the first level is level 1) |
 
 ## FAQ
 
@@ -91,7 +93,6 @@ vessel finishes building or enters its queue, so Scribe cannot record those mome
 - Not tested: sandbox or science-only saves and a large long-running career. (The 5,000-entry limit was exercised in a
   real game with 12,000 scripted events, in a test save.)
 - `Missing` kerbals, hired kerbals and contracts other than "completed" were not exercised in a flight yet.
-- The facility entry shows the new level as the game counts it internally, plus one.
 
 ## Reporting problems
 

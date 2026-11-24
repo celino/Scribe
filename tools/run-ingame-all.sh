@@ -9,7 +9,7 @@
 # is passed through to run-ingame.sh. Scenarios that are not in the list are skipped (full-career is local only).
 set -eu
 here="$(cd "$(dirname "$0")/.." && pwd)"
-ksp=""; scenarios="minimal,kct"; work="$here/ksp-test"; keep=0
+ksp=""; scenarios="minimal,kct"; work="$here/ksp-test/run-all"; keep=0
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--ksp) ksp="$2"; shift 2 ;;
